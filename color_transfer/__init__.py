@@ -1,4 +1,2 @@
-'''
-this how to call the the library and use the add on
-from mypackage.class import colour transfer
-'''
+from color_transfer.color_transfer import ColorXfer
+from color_transfer.version import __version__

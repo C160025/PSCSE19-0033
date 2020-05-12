@@ -194,6 +194,10 @@ c = [[1, 1, 1],
 # print(image2.size)
 # show the image
 
+def ColorXfer(source, target):
+    result = 0
+    return result
+
 
 def color_transfer(source, target, clip=True, preserve_paper=True):
     """
