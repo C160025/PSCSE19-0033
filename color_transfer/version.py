@@ -1,8 +1,8 @@
-__version__ = '0.6'
+__version__ = '0.1'
 
 def pretty_versions():
-    import keras
-    import tensorflow as tf
-    k_version = keras.__version__
-    t_version = tf.__version__
-    return "keras-vggface : {}, keras : {} , tensorflow : {} ".format(__version__,k_version,t_version)
+    import numpy
+    import cv2
+    n_version = numpy.__version__
+    c_version = cv2.__version__
+    return "color-transfer : {}, numpy : {} , opencv-python : {} ".format(__version__, n_version, c_version)
