@@ -12,7 +12,7 @@ from color_transfer.models import OpenCV_CX, Matrix_CX
 
 def ColorXfer(source, target, model):
     """
-    Color transfer from source image into target source image color profile,
+    Color transfer from target image's color characteristics into source image,
     by the selection color space conversion model.
     :param source: path and name of source image
     :param target: path and name of target image

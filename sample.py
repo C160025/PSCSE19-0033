@@ -1,3 +1,8 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import time
+
 def rgb2lab ( inputColor ) :
 
    num = 0
@@ -197,3 +202,15 @@ def _scale_array(arr, clip=True):
         scaled = _min_max_scale(arr, new_range=scale_range)
 
     return scaled
+
+source_path = "images/ocean_day.jpg"
+target_path = "images/ocean_sunset.jpg"
+transfer_path = "images/transfer.png"
+# source_path = "images/autumn.jpg"
+# target_path = "images/fallingwater.jpg"
+source = cv2.imread(source_path, cv2.IMREAD_COLOR)
+target = cv2.imread(target_path, cv2.IMREAD_COLOR)
+transfer_bgr = color_transfer_orginal(source, target, clip=True, preserve_paper=True)
+transfer_rgb = cv2.cvtColor(transfer_bgr, cv2.COLOR_BGR2RGB)
+cv2.imwrite(transfer_path, transfer_rgb)
+

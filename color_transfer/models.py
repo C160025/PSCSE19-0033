@@ -3,7 +3,7 @@ from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 
 def OpenCV_CX(source_rgb, target_rgb):
     """
-    Color transfer from source image into target source image color profile,
+    Color transfer from target image's color characteristics into source image,
     using opencv-python package to convert between color space.
     :param source_rgb: source image in RGB color space on numpy array
     :param target_rgb: target image in RGB color space on numpy array
@@ -23,7 +23,7 @@ def OpenCV_CX(source_rgb, target_rgb):
 
 def Matrix_CX(source_rgb, target_rgb):
     """
-    Color transfer from source image into target source image color profile.
+    Color transfer from target image's color characteristics into source image,
     Referencing from https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf paper
     :param source_rgb: source image in RGB color space on numpy array
     :param target_rgb: target image in RGB color space on numpy array
@@ -55,19 +55,19 @@ def color_correction(source_lab, target_lab):
     (target_l, target_a, target_b) = cv2.split(target_lab)
 
     # equation 10 subtract the mean from the target data points
-    l_s = target_l - target_l.mean()
-    a_s = target_a - target_a.mean()
-    b_s = target_b - target_b.mean()
+    l = source_l - source_l.mean()
+    a = source_a - source_a.mean()
+    b = source_b - source_b.mean()
 
     # equation 11 scale down by factoring the respective standard deviation
-    l_p = (target_l.std() / source_l.std()) * l_s
-    a_p = (target_a.std() / source_a.std()) * a_s
-    b_p = (target_b.std() / source_b.std()) * b_s
+    l = (target_l.std() / source_l.std()) * l
+    a = (target_a.std() / source_a.std()) * a
+    b = (target_b.std() / source_b.std()) * b
 
     # adding the mean back to the data points
-    l = l_p - target_l.mean()
-    a = a_p - target_a.mean()
-    b = b_p - target_b.mean()
+    l = l + target_l.mean()
+    a = a + target_a.mean()
+    b = b + target_b.mean()
 
     # merge individual channel back into lab color space
     output_lab = cv2.merge([l, a, b])
