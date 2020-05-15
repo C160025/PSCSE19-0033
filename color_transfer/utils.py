@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import cv2
 import time
 
 def cx_rgb2lab(image_rgb, log10):
@@ -10,10 +11,7 @@ def cx_rgb2lab(image_rgb, log10):
     :param log10:
     :return: image in lab color space on numpy array
     """
-    height = image_rgb.shape[0]
-    width = image_rgb.shape[1]
-    img_lab = np.zeros_like(image_rgb, dtype=np.float32)
-
+    t = time.time()
     # equation 2 to convert RGB space to XYZ space
     rgb2xyz_eq = [[0.5141, 0.3239, 0.1604],
                   [0.2651, 0.6702, 0.0641],
@@ -33,9 +31,9 @@ def cx_rgb2lab(image_rgb, log10):
                    [0.0241, 0.1288, 0.8444]]
 
     # left of equation 6 to convert LMS space to lab space
-    lms2lab_eq1 = [[1/math.sqrt(3), 0.0000, 0.0000],
-                   [0.0000, 1/math.sqrt(6), 0.0000],
-                   [0.0000, 0.0000, 1/math.sqrt(2)]]
+    lms2lab_eq1 = [[1 / math.sqrt(3), 0.0000, 0.0000],
+                   [0.0000, 1 / math.sqrt(6), 0.0000],
+                   [0.0000, 0.0000, 1 / math.sqrt(2)]]
 
     # right of equation 6 to convert LMS space to lab space
     lms2lab_eq2 = [[1.0000, 1.0000, 1.0000],
@@ -45,22 +43,30 @@ def cx_rgb2lab(image_rgb, log10):
     # dot product of equation 6 to convert LMS space to lab space
     lms2lab_eq = np.matmul(lms2lab_eq1, lms2lab_eq2)
 
-    t = time.time()
-    for x in range(0, width):
-        for y in range(0, height):
+    # split RGB into individual channel space for color space conversion
+    (r, g, b) = cv2.split(image_rgb)
 
-            # convert RGB space to LMS space
-            img_lab[y, x] = np.matmul(rgb2lms_eq1, image_rgb[y, x])
-            if (log10):
+    # convert RGB space to LMS space
+    L = r * rgb2lms_eq1[0][0] + g * rgb2lms_eq1[0][1] + b * rgb2lms_eq1[0][2]
+    M = r * rgb2lms_eq1[1][0] + g * rgb2lms_eq1[1][1] + b * rgb2lms_eq1[1][2]
+    S = r * rgb2lms_eq1[2][0] + g * rgb2lms_eq1[2][1] + b * rgb2lms_eq1[2][2]
 
-                # equation 5 to eliminate the skew
-                img_lab[y, x] = np.log10(img_lab[y, x])
+    # equation 5 to eliminate the skew
+    if (log10):
+        L = np.log10(L)
+        M = np.log10(M)
+        S = np.log10(S)
 
-            # convert LMS space to lab space
-            img_lab[y, x] = np.matmul(lms2lab_eq, img_lab[y, x])
+    # convert LMS space to lab space
+    l = L * lms2lab_eq[0][0] + M * lms2lab_eq[0][1] + S * lms2lab_eq[0][2]
+    a = L * lms2lab_eq[1][0] + M * lms2lab_eq[1][1] + S * lms2lab_eq[1][2]
+    b = L * lms2lab_eq[2][0] + M * lms2lab_eq[2][1] + S * lms2lab_eq[2][2]
+
+    # merge individual channel into lab color space
+    image_lab = cv2.merge([l, a, b]).astype(np.float32)
 
     print("took {} s".format(time.time() - t))
-    return img_lab
+    return image_lab
 
 def cx_lab2rgb(image_lab, power10):
     """
@@ -70,10 +76,7 @@ def cx_lab2rgb(image_lab, power10):
     :param power10:
     :return: image in RGB color space on numpy array
     """
-    height = image_lab.shape[0]
-    width = image_lab.shape[1]
-    img_rgb = np.zeros_like(image_lab, dtype=np.float32)
-
+    t = time.time()
     # left of equation 8 to convert lab space to LMS space
     lab2lms_eq1 = [[1.0000, 1.0000, 1.0000],
                    [1.0000, 1.0000, -1.0000],
@@ -92,19 +95,27 @@ def cx_lab2rgb(image_lab, power10):
                   [-1.2186, 2.3809, -0.1624],
                   [0.0497, -0.2439, 1.2045]]
 
-    t = time.time()
-    for x in range(0, width):
-        for y in range(0, height):
+    # split lab into individual channel space for color space conversion
+    (l, a, b) = cv2.split(image_lab)
 
-            # convert lab space to LMS space
-            img_rgb[y, x] = np.matmul(lab2lms_eq, image_lab[y, x])
-            if (power10):
+    # convert lab space to LMS space
+    L = l * lab2lms_eq[0][0] + a * lab2lms_eq[0][1] + b * lab2lms_eq[0][2]
+    M = l * lab2lms_eq[1][0] + a * lab2lms_eq[1][1] + b * lab2lms_eq[1][2]
+    S = l * lab2lms_eq[2][0] + a * lab2lms_eq[2][1] + b * lab2lms_eq[2][2]
 
-                # raise back to linear space
-                img_rgb[y, x] = np.power(10, img_rgb[y, x])
+    # raise back to linear space
+    if (power10):
+        L = np.power(10, L)
+        M = np.power(10, M)
+        S = np.power(10, S)
 
-            # convert LMS space to RGB space
-            img_rgb[y, x] = np.matmul(lms2rgb_eq, img_rgb[y, x])
+    # convert LMS space to RGB space
+    r = L * lms2rgb_eq[0][0] + M * lms2rgb_eq[0][1] + S * lms2rgb_eq[0][2]
+    g = L * lms2rgb_eq[1][0] + M * lms2rgb_eq[1][1] + S * lms2rgb_eq[1][2]
+    b = M * lms2rgb_eq[2][0] + M * lms2rgb_eq[2][1] + S * lms2rgb_eq[2][2]
+
+    # merge individual channel into RGB color space
+    img_rgb = cv2.merge([r, g, b]).astype(np.float32)
 
     print("took {} s".format(time.time() - t))
     return img_rgb

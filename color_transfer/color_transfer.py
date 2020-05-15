@@ -1,13 +1,5 @@
-import os
-import math
-import numpy as np
 # OpenCv package
 import cv2
-# Scikit-image
-from scipy import misc
-# Pillow package
-from PIL import Image
-import matplotlib.pyplot as plt
 from color_transfer.models import OpenCV_CX, Matrix_CX
 
 def ColorXfer(source, target, model):
@@ -27,7 +19,7 @@ def ColorXfer(source, target, model):
     target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
 
     if model == 'opencv':
-        return OpenCV_CX(source_rgb, target_rgb)
+        return OpenCV_CX(source_bgr, target_bgr)
     if model == 'matrix':
         return Matrix_CX(source_rgb, target_rgb)
 

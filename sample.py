@@ -19,7 +19,7 @@ def rgb2lab ( inputColor ) :
        RGB[num] = value * 100
        num = num + 1
 
-   XYZ = [0, 0, 0,]
+   XYZ = [0, 0, 0]
 
    X = RGB [0] * 0.4124 + RGB [1] * 0.3576 + RGB [2] * 0.1805
    Y = RGB [0] * 0.2126 + RGB [1] * 0.7152 + RGB [2] * 0.0722

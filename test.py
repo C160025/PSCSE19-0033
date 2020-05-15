@@ -1,101 +1,10 @@
 import numpy as np
 import cv2
+import math
+import time
 from color_transfer.color_transfer import ColorXfer
+from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 import matplotlib.pyplot as plt
-
-def color_transfer_orginal(source, target, clip=True, preserve_paper=True):
-    # convert the images from the RGB to L*ab* color space, being
-    # sure to utilizing the floating point data type (note: OpenCV
-    # expects floats to be 32-bit, so use that instead of 64-bit)
-    source_lab = cv2.cvtColor(source, cv2.COLOR_BGR2LAB).astype("float32")
-    target_lab = cv2.cvtColor(target, cv2.COLOR_BGR2LAB).astype("float32")
-
-    # compute color statistics for the source and target images
-    (lMeanSrc, lStdSrc, aMeanSrc, aStdSrc, bMeanSrc, bStdSrc) = image_stats(source_lab)
-    (lMeanTar, lStdTar, aMeanTar, aStdTar, bMeanTar, bStdTar) = image_stats(target_lab)
-
-    # subtract the means from the target image
-    (l, a, b) = cv2.split(source_lab)
-    # (l, a, b) = cv2.split(target_lab)
-    l_mean = (lMeanTar + lMeanSrc)/2
-    a_mean = (aMeanTar + aMeanSrc)/2
-    b_mean = (bMeanTar + bMeanSrc)/2
-
-    l -= lMeanSrc
-    a -= aMeanSrc
-    b -= bMeanSrc
-
-    #l -= l_mean
-    #a -= a_mean
-    #b -= b_mean
-
-    # l -= lMeanTar
-    # a -= aMeanTar
-    # b -= bMeanTar
-
-    if preserve_paper:
-        # scale by the standard deviations using paper proposed factor
-        l = (lStdTar / lStdSrc) * l
-        a = (aStdTar / aStdSrc) * a
-        b = (bStdTar / bStdSrc) * b
-    else:
-        # scale by the standard deviations using reciprocal of paper proposed factor
-        l = (lStdSrc / lStdTar) * l
-        a = (aStdSrc / aStdTar) * a
-        b = (bStdSrc / bStdTar) * b
-
-    # add in the source mean
-    l += lMeanTar
-    a += aMeanTar
-    b += bMeanTar
-
-    # clip/scale the pixel intensities to [0, 255] if they fall outside this range
-    l = _scale_array(l, clip=clip)
-    a = _scale_array(a, clip=clip)
-    b = _scale_array(b, clip=clip)
-
-    # merge the channels together and convert back to the RGB color
-    # space, being sure to utilize the 8-bit unsigned integer data
-    # type
-    transfer = cv2.merge([l, a, b])
-    transfer = cv2.cvtColor(transfer.astype("uint8"), cv2.COLOR_LAB2BGR)
-
-    # return the color transferred image
-    return transfer
-
-def image_stats(image):
-    # compute the mean and standard deviation of each channel
-    (l, a, b) = cv2.split(image)
-    (lMean, lStd) = (l.mean(), l.std())
-    (aMean, aStd) = (a.mean(), a.std())
-    (bMean, bStd) = (b.mean(), b.std())
-
-    # return the color statistics
-    return (lMean, lStd, aMean, aStd, bMean, bStd)
-
-def _min_max_scale(arr, new_range=(0, 255)):
-    # get array's current min and max
-    mn = arr.min()
-    mx = arr.max()
-
-    # check if scaling needs to be done to be in new_range
-    if mn < new_range[0] or mx > new_range[1]:
-        # perform min-max scaling
-        result = (new_range[1] - new_range[0]) * (arr - mn) / (mx - mn) + new_range[0]
-    else:
-        # return array if already in range
-        result = arr
-
-    return result
-
-def _scale_array(arr, clip=True):
-    if clip:
-        scaled = np.clip(arr, 0, 255)
-    else:
-        scale_range = (max([arr.min(), 0]), min([arr.max(), 255]))
-        scaled = _min_max_scale(arr, new_range=scale_range)
-
-    return scaled
 
 # source_path = "images/autumn.jpg"
 # target_path = "images/fallingwater.jpg"
@@ -103,17 +12,9 @@ def _scale_array(arr, clip=True):
 # target_path = "images/ocean_sunset.jpg"
 source_path = "images/source2.png"
 target_path = "images/target2.png"
-transfer_path = "images/transfer.png"
-source = cv2.imread(source_path, cv2.IMREAD_COLOR)
-# print(source[:1])
-# source_rgb = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
-# print(source_rgb[:1])
-# source_lab = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2LAB)
-# print(source_lab[:1])
-# source_rgb2 = cv2.cvtColor(source_lab, cv2.COLOR_LAB2RGB)
-# print(source_rgb2[:1])
-# # print(source_rgb[:1])
-target = cv2.imread(target_path, cv2.IMREAD_COLOR)
+transfer_path = "images/transfer2.png"
+
+
 # target_rgb = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
 # # print(f'{target_rgb.min()}, {target_rgb.max()}')
 # # print(target_rgb[:1])
@@ -121,8 +22,18 @@ target = cv2.imread(target_path, cv2.IMREAD_COLOR)
 # result_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
 # print(f'{result_rgb.min()}, {result_rgb.max()}')
 # print(result_rgb[:1])
-#transfer = color_transfer_orginal(source, target, clip=True, preserve_paper=True)
-transfer = ColorXfer(source_path, target_path, model='opencv')
+# transfer = color_transfer_orginal(source, target, clip=True, preserve_paper=True)
+source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
+source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
+# test1 = cx_rgb2lab_nestedloop(source_rgb, True)
+# print(test1[:1])
+# test2 = cx_rgb2lab_numpy(source_rgb, True)
+# print(test2[:1])
+# test3 = cx_lab2rgb_nestedloop(test1, True)
+# print(test3[:1])
+# test4 = cx_lab2rgb_numpy(test2, True)
+# print(test4[:1])
+transfer = ColorXfer(source_path, target_path, model='matrix')
 cv2.imwrite(transfer_path, transfer)
 # imgplot = plt.imshow(transfer_path)
 # plt.show()
@@ -138,9 +49,6 @@ cv2.imwrite(transfer_path, transfer)
 
 # if __name__ == '__main__':
 #     unittest.main()
-
-
-
 
 # Scikit-image read in RGB return array tried converting RGB [45, 1, 0] to lab [5.23712195 21.32443839  8.25209207]
 # match online converter result but reverse converting lab [5.23712195 21.32443839  8.25209207] to
