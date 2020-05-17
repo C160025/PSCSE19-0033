@@ -10,7 +10,7 @@ def ColorXfer(source, target, model):
     :param target: path and name of target image
     :param model: two type conversion models
                   'opencv' = opencv-python package
-                  'matrix' = equation referencing from https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf paper
+                  'matrix' = equation referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
     :return: output image in RGB color space
     """
     source_bgr = cv2.imread(source, cv2.IMREAD_COLOR)

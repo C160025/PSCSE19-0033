@@ -6,7 +6,7 @@ import time
 def cx_rgb2lab(image_rgb, log10):
     """
     Color space conversion from RGB to lab space referencing from paper
-    Referencing from https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf paper
+    Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
     :param image_rgb: image in RGB color space on numpy array
     :param log10:
     :return: image in lab color space on numpy array
@@ -51,11 +51,14 @@ def cx_rgb2lab(image_rgb, log10):
     M = r * rgb2lms_eq1[1][0] + g * rgb2lms_eq1[1][1] + b * rgb2lms_eq1[1][2]
     S = r * rgb2lms_eq1[2][0] + g * rgb2lms_eq1[2][1] + b * rgb2lms_eq1[2][2]
 
+    # to prevent divide by zero encountered in log
+    minval = 0.0000000001
+
     # equation 5 to eliminate the skew
     if (log10):
-        L = np.log10(L)
-        M = np.log10(M)
-        S = np.log10(S)
+        L = np.log10(L.clip(min=minval))
+        M = np.log10(M.clip(min=minval))
+        S = np.log10(S.clip(min=minval))
 
     # convert LMS space to lab space
     l = L * lms2lab_eq[0][0] + M * lms2lab_eq[0][1] + S * lms2lab_eq[0][2]
@@ -65,13 +68,13 @@ def cx_rgb2lab(image_rgb, log10):
     # merge individual channel into lab color space
     image_lab = cv2.merge([l, a, b]).astype(np.float32)
 
-    print("took {} s".format(time.time() - t))
+    print("took {} s to be remove after testing phase".format(time.time() - t))
     return image_lab
 
 def cx_lab2rgb(image_lab, power10):
     """
     Color space conversion from lab to RGB space.
-    Referencing from https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf paper
+    Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
     :param image_lab: image in lab color space on numpy array
     :param power10:
     :return: image in RGB color space on numpy array
@@ -117,5 +120,5 @@ def cx_lab2rgb(image_lab, power10):
     # merge individual channel into RGB color space
     img_rgb = cv2.merge([r, g, b]).astype(np.float32)
 
-    print("took {} s".format(time.time() - t))
+    print("took {} s to be remove after testing phase".format(time.time() - t))
     return img_rgb

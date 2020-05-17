@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 # target_path = "images/fallingwater.jpg"
 # source_path = "images/ocean_day.jpg"
 # target_path = "images/ocean_sunset.jpg"
-source_path = "images/source2.png"
-target_path = "images/target2.png"
-transfer_path = "images/transfer2.png"
+source_path = "images/scotland_house.png"
+target_path = "images/scotland_plain.png"
+transfer_path = "images/failed.png"
 
 
 # target_rgb = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
@@ -33,7 +33,7 @@ source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
 # print(test3[:1])
 # test4 = cx_lab2rgb_numpy(test2, True)
 # print(test4[:1])
-transfer = ColorXfer(source_path, target_path, model='matrix')
+transfer = ColorXfer(source_path, target_path, model='opencv')
 cv2.imwrite(transfer_path, transfer)
 # imgplot = plt.imshow(transfer_path)
 # plt.show()

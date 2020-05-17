@@ -25,7 +25,7 @@ def OpenCV_CX(source_bgr, target_bgr):
 def Matrix_CX(source_rgb, target_rgb):
     """
     Color transfer from target image's color characteristics into source image,
-    Referencing from https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf paper
+    Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
     :param source_rgb: source image in RGB color space on numpy array
     :param target_rgb: target image in RGB color space on numpy array
     :return: output_bgr: corrected image in BGR color space on numpy array
@@ -47,7 +47,7 @@ def color_correction(source_lab, target_lab, clip='False'):
     """
     Color correction is to compute mean and standard deviation for each axis
     individually in the lab color space.
-    Referencing from https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf paper
+    Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
     :param source_lab: source image in lab color space on numpy array
     :param target_lab: target image in lab color space on numpy array
     :return: output_lab: corrected image in lab color space on numpy array
