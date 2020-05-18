@@ -2,6 +2,47 @@ import cv2
 import numpy as np
 from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 
+# F. Pitie 2005 N-Dimensional PDF Transfer
+def PDF_CX(source_rgb, target_rgb):
+    """
+
+    :param source_rgb:
+    :param target_rgb:
+    :return:
+    """
+    # reshape (h, w, c) to (c, h*w)
+    [h, w, c] = source_rgb.shape
+    reshape_arr_in = source_rgb.reshape(-1, c).transpose() / 255.
+    reshape_arr_ref = target_rgb.reshape(-1, c).transpose() / 255.
+    # pdf transfer
+    #reshape_arr_out = self.pdf_transfer_nd(arr_in=reshape_arr_in, arr_ref=reshape_arr_ref)
+    for rotation_matrix in self.rotation_matrices:
+        rot_arr_in = np.matmul(rotation_matrix, arr_out)
+        rot_arr_ref = np.matmul(rotation_matrix, arr_ref)
+        rot_arr_out = np.zeros(rot_arr_in.shape)
+        for i in range(rot_arr_out.shape[0]):
+            rot_arr_out[i] = self._pdf_transfer_1d(rot_arr_in[i],
+                                                   rot_arr_ref[i])
+        # func = lambda x, n : self._pdf_transfer_1d(x[:n], x[n:])
+        # rot_arr = np.concatenate((rot_arr_in, rot_arr_ref), axis=1)
+        # rot_arr_out = np.apply_along_axis(func, 1, rot_arr, rot_arr_in.shape[1])
+        rot_delta_arr = rot_arr_out - rot_arr_in
+        delta_arr = np.matmul(rotation_matrix.transpose(),
+                              rot_delta_arr)  # np.linalg.solve(rotation_matrix, rot_delta_arr)
+        arr_out = step_size * delta_arr + arr_out
+    # reshape (c, h*w) to (h, w, c)
+    reshape_arr_out[reshape_arr_out < 0] = 0
+    reshape_arr_out[reshape_arr_out > 1] = 1
+    reshape_arr_out = (255. * reshape_arr_out).astype('uint8')
+    img_arr_out = reshape_arr_out.transpose().reshape(h, w, c)
+    return 0
+
+# F. Pitie 2005 N-Dimensional PDF Transfer
+def one_dim_pdf_transfer(source_rgb, target_rgb):
+
+    return 0
+
+# Erik Reinhard 2001 Color Transfer between Images
 def OpenCV_CX(source_bgr, target_bgr):
     """
     Color transfer from target image's color characteristics into source image,
@@ -22,6 +63,7 @@ def OpenCV_CX(source_bgr, target_bgr):
 
     return output_bgr
 
+# Erik Reinhard 2001 Color Transfer between Images
 def Matrix_CX(source_rgb, target_rgb):
     """
     Color transfer from target image's color characteristics into source image,
@@ -43,6 +85,7 @@ def Matrix_CX(source_rgb, target_rgb):
 
     return output_bgr
 
+# Erik Reinhard 2001 Color Transfer between Images
 def color_correction(source_lab, target_lab, clip='False'):
     """
     Color correction is to compute mean and standard deviation for each axis
