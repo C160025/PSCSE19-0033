@@ -1,4 +1,9 @@
 import numpy as np
+import random
+import scipy.optimize
+from pprint import pprint
+import scipy
+import scipy.linalg
 import cv2
 import math
 import time
@@ -10,239 +15,250 @@ import matplotlib.pyplot as plt
 # target_path = "images/fallingwater.jpg"
 # source_path = "images/ocean_day.jpg"
 # target_path = "images/ocean_sunset.jpg"
-source_path = "images/scotland_house.png"
-target_path = "images/scotland_plain.png"
-transfer_path = "images/failed.png"
-
-
-# target_rgb = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
-# # print(f'{target_rgb.min()}, {target_rgb.max()}')
-# # print(target_rgb[:1])
-# result = cv2.imread(result_path, cv2.IMREAD_COLOR)
-# result_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
-# print(f'{result_rgb.min()}, {result_rgb.max()}')
-# print(result_rgb[:1])
-# transfer = color_transfer_orginal(source, target, clip=True, preserve_paper=True)
-source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
-source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
-# test1 = cx_rgb2lab_nestedloop(source_rgb, True)
-# print(test1[:1])
-# test2 = cx_rgb2lab_numpy(source_rgb, True)
-# print(test2[:1])
-# test3 = cx_lab2rgb_nestedloop(test1, True)
-# print(test3[:1])
-# test4 = cx_lab2rgb_numpy(test2, True)
-# print(test4[:1])
-transfer = ColorXfer(source_path, target_path, model='opencv')
-cv2.imwrite(transfer_path, transfer)
-# imgplot = plt.imshow(transfer_path)
-# plt.show()
-#
-# # class ColorXferTest(unittest.TestCase):
-# # 'opencv' 'matrix'
-# result = ColorXfer(source_path, target_path, model='opencv')
-# # imgplot = plt.imshow(source)
-# # imgplot = plt.imshow(target)
-# imgplot = plt.imshow(result)
-# plt.show()
-# cv2.imshow('image', result)
-
-# if __name__ == '__main__':
-#     unittest.main()
-
-# Scikit-image read in RGB return array tried converting RGB [45, 1, 0] to lab [5.23712195 21.32443839  8.25209207]
-# match online converter result but reverse converting lab [5.23712195 21.32443839  8.25209207] to
-# RGB get [1.76470588e-01 3.92156863e-03 2.32662719e-17] failed result
-# tried on mathlab get the same result ????
-# tried http://colormine.org/color-converter CIE-L*ab back to RGB it work
-
-# Scikit-image read in RGB return array
-# image_skimage_rgb = io.imread(source)
-# print(f'{image_skimage_rgb.min()}, {image_skimage_rgb.max()}')
-# height width, channel
-# print('Scikit-shape', image_skimage.shape)
-# print('Scikit-dtype', image_skimage.dtype)
-# print('Scikit-array')
-# print(image_skimage[:3])
-# array_image_skimage = image_skimage
-# 'D65', '2' parameter
-# green = np.int32([[[0, 254, 0]]])
-# print(green)
-# print(f'{green.min()}, {green.max()}')
-# image_skimage_lab = color.rgb2lab(green)
-# print(image_skimage_lab)
-# print(f'{image_skimage_lab.min()}, {image_skimage_lab.max()}')
-# print(l)
-# print(f'{l.min()}, {l.max()}')
-# print("image_skimage_lab", image_skimage_lab[0])
-# image_skimage_lch = color.lab2lch(image_skimage_lab)
-# print("image_skimage_lch", image_skimage_lch[0])
-# image_skimage_lab2 = color.lch2lab(image_skimage_lch)
-# print("image_skimage_lab2", image_skimage_lab2[0])
-# image_skimage_rgb2 = color.lab2rgb(image_skimage_lab.astype("uint8"))
-# print("image_skimage_rgb2", image_skimage_rgb2[0])
-# lab_green = np.array([[[87.73509949, -86.18302974,  83.17970318]]])
-# output = cv2.cvtColor(array, cv2.COLOR_BGR2LAB).astype("float32")
-# output = cv2.cvtColor(array.astype("uint8"), cv2.COLOR_LAB2BGR)
-# print(test2)
-# skimage_lab = color.convert_colorspace(array_image_skimage, 'rgb', 'rgb cie')
-# print(skimage_lab[:1])
-
-# print(skimage_lab)
-# test = color.lab2rgb(skimage_lab, 'D65')
-# print(test[:1])
-
-
-# OpenCV read in BGR return array
-# image_opencv_bgr = cv2.imread(source, cv2.IMREAD_COLOR)
-# opencv_bgr = image_opencv_bgr
-
-# print(image_opencv_bgr[:, :, 0])
-# print(image_opencv_bgr[:, :, 1])
-# print(image_opencv_bgr[:, :, 2])
-# image_opencv_xyz = cv2.cvtColor(image_opencv_bgr, cv2.COLOR_RGB2XYZ)
-# print(f'{image_opencv_xyz.min()}, {image_opencv_xyz.max()}')
-# image_opencv_lab = cv2.cvtColor(image_opencv_bgr, cv2.COLOR_BGR2Lab)
-# print(image_opencv_lab[:1])
-# print(f'{image_opencv_lab.min()}, {image_opencv_lab.max()}')
-# image_opencv_bgr2 = cv2.cvtColor(image_opencv_lab.astype("int32"), cv2.COLOR_LAB2BGR)
-# print(image_opencv_bgr2[:1])
-# print(f'{image_opencv_bgr2.min()}, {image_opencv_bgr2.max()}')
-# print('OpenCV-size', image_opencv.shape)
-# print('OpenCV-dtype', image_opencv.dtype)
-# correct BGR to RGB
-# challenges and difficulties need additional conversion from BGR to RGB
-# image_opencv_rgb = cv2.cvtColor(image_opencv_bgr, cv2.COLOR_BGR2RGB)
-# print(image_opencv_rgb[:1])
-# image_opencv_lab = cv2.cvtColor(image_opencv_rgb, cv2.COLOR_RGB2Lab).astype("float32")
-# print(image_opencv_lab[:1])
-# image_opencv_bgr2 = cv2.cvtColor(image_opencv_lab.astype("uint8"), cv2.COLOR_LAB2RGB)
-# print(image_opencv_bgr2[:1])
-#plt.imshow(array_image_skimage)
-#plt.show()
-# print('OpenCV-array')
-# print(image_opencv_RGB[:3])
-# print(array_image_opencv_BGR[:1])
-# plt.imshow(array_image_opencv_BGR)
-# plt.show()
-
-# print(openvs_lab_BGR[:1])
-# print(test3[:1])
-# print(test2[:1])
-# plt.imshow(test2)
-# plt.show()
-
-# print(opencv_RGB2lab[:1])
-
-
-# Pillow read in RGB return object is very bad for multiplication
-# when is an object and lack of converting colour space function
-# can put into project report challenges and difficulties
-# image_pillow = Image.open(source).convert('RGB')
-# print('Pillow-size', image_pillow.size)
-# print('Pillow-array')
-# print(np.uint8(image_pillow)[:1])
-# print(np.uint8(Lab)[:1])
-# L, a, b = Lab.split()
-
-# array_image_pillow = np.array(image_pillow)[:1]
-
-
-
-
-
-
-# image_opencv_bgr = cv2.imread(source, cv2.IMREAD_COLOR)
-# image_opencv_rgb = cv2.cvtColor(image_opencv_bgr, cv2.COLOR_BGR2RGB)
-# test13 = ct_rgb2lab(image_opencv_rgb, True)
-# height = test13.shape[0]
-# width = test13.shape[1]
-# test13.reshape()
-# print(test13[:1])
-# test14 = ct_lab2rgb(test13, True)
-# test15 = np.rint(test14)
-# test15[test15 <= -0.] = 0.
-# print(test15[:1])
-# test = np.array([[[44.99915824, 0.99912331, 0.0069295]]], dtype=np.float32)
-# test12 = np.rint(test)
-# print(test12)
-
-# print(image.size)
-# print(image.mode)
-#
-# im_bgr = cv2.cvtColor(im_pillow, cv2.COLOR_RGB2BGR)
-# # print(im_bgr)
-# data = cv2.imread(source)   #BGR
-# # print(data)
-# # print(data.format)
-# # print(data.size)
-# # print(data.mode)
-# #lab = rgb2lab(im_pillow)
-# #print(lab)
-# # img_s = max(img_s,1/255);
-#
-# opencv = cv2.cvtColor(data, cv2.COLOR_BGR2LAB)#.astype("float32") #BGR to LAB
-# print(opencv)
-# num = 0
-# RGB = [1, 1, 1]
-# lab = [0, 0, 0]
-#
-# a = [[0.3811, 0.5783, 0.0402],
-#      [0.1967, 0.7244, 0.0782],
-#      [0.0241, 0.1288, 0.8444]]
-# b = [[1/math.sqrt(3), 0, 0],
-#      [0, 1/math.sqrt(6), 0],
-#      [0, 0, 1/math.sqrt(2)]]
-# c = [[1, 1, 1],
-#      [1, 1, -2],
-#      [1, -1, 0]]
-# # print(np.dot(a, RGB))
-# # test = []
-# # for row in image:
-# #     test.append([])
-# #     for rgb in row:
-# #         print("rgb")
-# #         print(rgb)
-# #         lms = np.dot(a, rgb)
-# #         print("lms")
-# #         print(lms)
-# #         lms_b = np.around(np.log10(lms), decimals=4)
-# #         print("lms_b")
-# #         print(lms_b)
-# #         #np.dot(np.dot(b, c), lms_b)
-# #         print("lab")
-# #         print(np.around(np.dot(np.dot(b, c), lms_b), decimals=4))
-# #         #lms_ = np.append(np.log10(lms[0]),  np.log10(lms[1]),  np.log10(lms[3]))
-# #         # print(np.log10(lms))
-# #        # lms_ = np.log10(lms) if lms != 0 else lms
-# #        # test.append(np.dot(np.dot(b, c), lms_))
+# source_path = "images/scotland_house.png"
+# target_path = "images/scotland_plain.png"
+# transfer_path = "images/failed.png"
 #
 #
-# # print(test)
-# #     lms = np.dot(a, value)
-# #     lms_ = np.log10(lms)
-# #     lab[num] = np.dot(np.dot(b, c), lms_)
-# #     num = num + 1
-# #
-# # print(lab)
-# # # test = color_space_conversion(data, input_to_output="rgb2lab", conversion_type="opencv")
-# # # print(data)
-# # RGB = [1, 2, 3]
+# # target_rgb = cv2.cvtColor(target, cv2.COLOR_BGR2RGB)
+# # # print(f'{target_rgb.min()}, {target_rgb.max()}')
+# # # print(target_rgb[:1])
+# # result = cv2.imread(result_path, cv2.IMREAD_COLOR)
+# # result_rgb = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
+# # print(f'{result_rgb.min()}, {result_rgb.max()}')
+# # print(result_rgb[:1])
+# # transfer = color_transfer_orginal(source, target, clip=True, preserve_paper=True)
+# source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
+# source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
+# # test1 = cx_rgb2lab_nestedloop(source_rgb, True)
+# # print(test1[:1])
+# # test2 = cx_rgb2lab_numpy(source_rgb, True)
+# # print(test2[:1])
+# # test3 = cx_lab2rgb_nestedloop(test1, True)
+# # print(test3[:1])
+# # test4 = cx_lab2rgb_numpy(test2, True)
+# # print(test4[:1])
+# transfer = ColorXfer(source_path, target_path, model='opencv')
+# cv2.imwrite(transfer_path, transfer)
+
+def gram_schmidtA(A):
+    eps = np.finfo(np.float).eps
+    Q = np.array(A, dtype='float32')# Make B as a copy of A, since we're going to alter it's values.
+    # Loop over all vectors, starting with zero, label them with i
+    for i in range(Q.shape[1]):
+        # Inside that loop, loop over all previous vectors, j, to subtract.
+        for j in range(i):
+            # Complete the code to subtract the overlap with previous vectors.
+            # you'll need the current vector B[:, i] and a previous vector B[:, j]
+            Q[:, i] = Q[:, i] - Q[:, i] @ Q[:, j] * Q[:, j]
+        # Next insert code to do the normalisation test for B[:, i]
+        if np.linalg.norm(Q[:, i]) > eps:
+            Q[:, i] = Q[:, i] / np.linalg.norm(Q[:, i])
+        else:
+            Q[:, i] = np.zeros_like(Q[:, i])
+    # Finally, we return the result:
+    R = Q * A
+    return Q, R
+
+def gram_schmidt1(A):
+    eps = np.finfo(np.float).eps
+    m, n = A.shape
+    ap = A.astype(np.float)
+    Q = np.zeros((m, n)).astype(np.float)
+    R = np.zeros((n, n)).astype(np.float)
+
+    for j in range(n):
+        for k in range(j):
+            ap[:, j] = ap[:, j] - ap[:, j] @ ap[:, k] * ap[:, k]
+        if np.linalg.norm(ap[:, j]) > eps:
+            Q[:, j] = ap[:, j] / np.linalg.norm(ap[:, j])
+        else:
+            Q[:, j] = np.zeros_like(ap[:, j])
+    R = Q @ A
+    return Q, R
+
+def gram_schmidt2(A):
+    """Orthogonalize a set of vectors stored as the columns of matrix A."""
+    # Get the number of vectors.
+    n = A.shape[1]
+    for j in range(n):
+        # To orthogonalize the vector in column j with respect to the
+        # previous vectors, subtract from it its projection onto
+        # each of the previous vectors.
+        for k in range(j):
+            A[:, j] -= np.dot(A[:, k], A[:, j]) * A[:, k]
+        A[:, j] = A[:, j] / np.linalg.norm(A[:, j])
+
+
+    return A
+
+def gram_schmidt3(A):
+    m, n = A.shape
+    Q = np.zeros((m, n))
+    R = np.zeros((n, n))
+
+    for j in range(n):
+        v = A[:, j]
+        for k in range(j):
+            q = Q[:, k]
+            R[k, j] = q.dot(v)
+            v = v - R[k, j] * q
+
+    norm = np.linalg.norm(v)
+    Q[:, j] = v / norm
+    R[j, j] = norm
+
+    return Q, R
+
+def gram_schmidt(A):
+    """Orthogonalize a set of vectors stored as the columns of matrix A."""
+    # Get the number of vectors.
+    eps = np.finfo(np.float).eps
+    asave = np.copy(A.astype(np.float))
+    n = A.shape[1]
+    Q = np.zeros_like(A).astype(np.float)
+    for j in range(n):
+        # To orthogonalize the vector in column j with respect to the
+        # previous vectors, subtract from it its projection onto
+        # each of the previous vectors.
+        for k in range(j):
+            mult = (np.dot(A[:, j], A[:, k])) / (np.dot(A[:, k], A[:, k]))
+            A[:, j] = A[:, j] - np.dot(mult, A[:, k])
+
+    for j in range(n):
+        if np.linalg.norm(A[:, j]) >= np.sqrt(eps):
+            Q[:, j] = A[:, j] / np.linalg.norm(A[:, j])
+        else:
+            print('Columns of A are linearly dependent.')
+
+    return Q, np.dot(Q.T, asave)
+
+def hyperspherical2cartesianT(x):
+    c = np.zeros(len(x) + 1)
+    sk = 1
+
+    for k in range(len(x)):
+        tt = x[k]
+        t = sk * np.cos(tt)
+        c[k] = t
+        sk = sk * np.sin(tt)
+
+    c[len(x)] = sk
+    return c
+
+def generate_rotations(ndim, nb_rotations):
+    l = []
+    if ndim == 2:
+        l.append([0, np.pi/2])
+    elif ndim == 3:
+        l.append([0, 0, np.pi / 2, 0, np.pi / 2, np.pi / 2])
+    #else:
+        #put here initialisation for higher orders
+    l = np.asarray(l)
+
+    print('rotation ')
+    for i in range(nb_rotations):
+        print(i)
+        t = find_next(l, ndim)
+        l = np.append(l, [t], 0)
+
+    m = ndim
+    rows = l.shape[0]
+    b_prev = np.zeros((m, m))
+    rotations = np.zeros((rows, m, m))
+    for row in range(rows):
+        for j in range(m):
+            x = []
+            for k in range(ndim - 1):
+                c = k + (j * (ndim - 1))
+                x.append(l[row, c])
+            h = hyperspherical2cartesianT(x)
+            b_prev[j, :] = h
+        t = b_prev.T
+        q, r = gram_schmidtA(t)
+        b_prev = q.T
+        rotations[row, ::] = b_prev
+
+def find_next(l, ndim):
+    prevx = l
+    nprevx = prevx.shape[0]
+    hdim = ndim - 1
+    m = ndim
+
+    b_prev = np.zeros((m, m))
+    c_prevx = np.zeros((nprevx * m, ndim))
+    for i in range(nprevx):
+        for j in range(m):
+            y = []
+            for k in range(hdim):
+                c = k + (j * hdim)
+                y.append(prevx[i, c])
+            h = hyperspherical2cartesianT(y)
+            b_prev[j, :] = h
+        t = b_prev.T
+        q, r = gram_schmidtA(t)
+        b_prev = q.T
+        c_prevx[i, :] = b_prev
+
+    def myfun(x1):
+        """
+        https://www.youtube.com/watch?v=cXHvC_FGx24 find the solution
+        :param x:
+        :param m:
+        :param ndim:
+        :param c_prevx:
+        :return:
+        """
+        c_x = np.zeros(m, ndim)
+
+        for i in range(m):
+            y = []
+            for k in range(hdim):
+                c = k + (i * hdim)
+                y.append(x1[i, c])
+            h = hyperspherical2cartesianT(y)
+            c_x[i, :] = h
+        t = c_x.T
+        q, r = gram_schmidtA(t)
+        c_x = q.T
+        f = 0
+
+        for i in range(m):
+            for p in range(c_prevx.shape[0]):
+                d = (c_prevx[p, :] - c_x[i, :]) * (c_prevx[p, :] - c_x[i, :])
+                f = f + 1 / (1 + d.T)
+                d = (c_prevx[p, :] + c_x[i, :]) * (c_prevx[p, :] + c_x[i, :])
+                f = f + 1 / (1 + d.T)
+
+        return f
+
+    for i in range(10):
+        x0 = random.randint(1, hdim * m) * np.pi - np.pi / 2
+        x = scipy.optimize.minimize(myfun, x0, options={'disp':True})
+        f = myfun(x)
+        if f < minf:
+            minf = f
+            mix = x
+
+    return x
+
+nb_rotations = np.array([[12, -51, 4], [6, 167, -68], [-4, 24, -41]]).astype(np.float)
+
+
+x = generate_rotations(3, 10)
+# Q1.shape, R1.shape
+# test = np.abs(A - Q1.dot(R1).sum()) < 1e-6
+
+# print("A:")
+# pprint(A)
+# print("Q:")
+# pprint(Q*-1)
+# # pprint(test)
+# print("Q1:")
+# pprint(Q1)
 #
-# # lms = np.dot(a, RGB)
-# # lms_ = np.log10(lms)
-# # lab = np.dot(np.dot(b, c), lms_)
-# # print(lab)
-#
-#
-# # print(type(data))
-# # print(data.shape)
-# #
-# # image2 = Image.fromarray(data)
-# # print('****')
-# # print(type(image2))
-# #
-# # # summarize image details
-# # print(image2.mode)
-# # print(image2.size)
-# # show the image
+# print("R:")
+# pprint(R*-1)
+print("R1:")
+# pprint(R1)
+
