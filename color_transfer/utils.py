@@ -144,14 +144,14 @@ def myfun(x1, m, ndim, c_prevx):
 x = generate_rotations(3, 10)
 print(x)
 
-def random_rotations(m=6, c=3):
+def random_rotations(row=6, col=3):
     """
     generate orthogonal matrices for pdf transfer. Random rotation.
     :return:
     """
-    assert m > 0
-    rotation_matrices = [np.eye(c)]
-    rotation_matrices.extend([np.matmul(rotation_matrices[0], sp.rvs(dim=c)) for _ in range(m - 1)])
+    assert row > 0
+    rotation_matrices = [np.eye(col)]
+    rotation_matrices.extend([np.matmul(rotation_matrices[0], sp.rvs(dim=col)) for _ in range(row - 1)])
     return rotation_matrices
 
 #  F. Pitié 2007 Automated colour grading using colour distribution transfer

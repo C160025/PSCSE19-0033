@@ -155,6 +155,3 @@ def myfun(x1, m, ndim, c_prevx):
             f = f + 1 / (1 + d.T)
 
     return f
-
-x = generate_rotations(3, 10)
-print(x)
