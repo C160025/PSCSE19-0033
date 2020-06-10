@@ -4,6 +4,7 @@ import cv2
 import time
 import scipy as sp
 import scipy.optimize
+from scipy.stats import special_ortho_group
 
 def hyperspherical2cartesianT(x):
     """
@@ -141,9 +142,6 @@ def myfun(x1, m, ndim, c_prevx):
 
     return f
 
-x = generate_rotations(3, 10)
-print(x)
-
 def random_rotations(row=6, col=3):
     """
     generate orthogonal matrices for pdf transfer. Random rotation.
@@ -151,7 +149,7 @@ def random_rotations(row=6, col=3):
     """
     assert row > 0
     rotation_matrices = [np.eye(col)]
-    rotation_matrices.extend([np.matmul(rotation_matrices[0], sp.rvs(dim=col)) for _ in range(row - 1)])
+    rotation_matrices.extend([np.matmul(rotation_matrices[0], special_ortho_group.rvs(dim=col)) for _ in range(row - 1)])
     return rotation_matrices
 
 #  F. Pitié 2007 Automated colour grading using colour distribution transfer
@@ -182,7 +180,7 @@ def cx_rgb2lab(image_rgb, log10):
     Color space conversion from RGB to lab space referencing from paper
     Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
     :param image_rgb: image in RGB color space on numpy array
-    :param log10:
+    :param log10: true = eliminate the skew by log10 on LMS, false = bypass log10 on LMS
     :return: image in lab color space on numpy array
     """
     t = time.time()

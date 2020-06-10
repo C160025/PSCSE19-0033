@@ -1,13 +1,13 @@
 # OpenCv package
 import cv2
-from color_transfer.models import Mean_CX, PDF_CX, PDF_IDT_CX, PDF_MKL_CX
+from color_transfer.models import Mean_CX, MKL_CX, IDT_CX, REGRAIN_CX
 
-def ColorXfer(source, target, model, conversion):
+def ColorXfer(source, target, model, conversion=None):
     """
     Color transfer from target image's color characteristics into source image,
     by the selection color space conversion model.
-    :param source: path and name of source image
-    :param target: path and name of target image
+    :param source: source image in RGB color space (0-255) on numpy array
+    :param target: target image in RGB color space (0-255) on numpy array
     :param conversion: two type color space conversions
                   'opencv' = opencv-python package
                   'matrix' = equation referencing from Color Transfer between Images by Erik Reinhard's paper
@@ -24,18 +24,17 @@ def ColorXfer(source, target, model, conversion):
                   'mkl' = compute using
                   The Linear Monge-Kantorovitch Linear Colour Mapping for Example-Based Colour Transfer by F. Pitié
                   https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cvmp.pdf
-    :return: output image in RGB color space
+    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
     """
-    source_bgr = cv2.imread(source, cv2.IMREAD_COLOR)
-    source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
-    target_bgr = cv2.imread(target, cv2.IMREAD_COLOR)
-    target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
 
     if model == 'mean':
         return Mean_CX(source, target, conversion)
-    if model == 'pdf':
-        return PDF_CX(source_rgb, target_rgb)
-
+    if model == 'mkl':
+        return MKL_CX(source, target, conversion)
+    if model == 'idt':
+        return IDT_CX(source, target, conversion)
+    if model == 'regrain':
+        return REGRAIN_CX(source, target)
 
 
 
@@ -55,3 +54,4 @@ def ColorXfer(source, target, model, conversion):
 # lab = rgb2lab(im_pillow)
 # print(lab)
 # img_s = max(img_s,1/255);
+# ColorXfer
