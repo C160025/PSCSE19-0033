@@ -1,62 +1,100 @@
 import cv2
 import numpy as np
-import scipy as sp
-import pandas as pd
 from scipy.stats import special_ortho_group
-from scipy import interpolate
-from color_transfer.utils import cx_rgb2lab, cx_lab2rgb, optimal_rotations, random_rotations
-from color_transfer.generate_rotations import generate_rotations
+from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 
-
-eps = np.finfo(np.float).eps
+eps = np.finfo(np.float32).eps
 
 # The linear Monge-Kantorovitch linear colour mapping for
 # example-based colour transfer. F. Pitié and A. Kokaram (2007) In 4th
 # IEE European Conference on Visual Media Production (CVMP'07). London,
 # November.
 
+def MKL_CX(source_rgb, target_rgb):
+    """
+    [Pitie07b] Pitie et al. The linear Monge-Kantorovitch linear colour mapping for example-based colour transfer. CVMP07.
+    Probability Density Function (PDF) Monge-Kantorovitch linear (MKL) Color transfer (CX)
+    :param source_rgb: source image in RGB color space (0-255) on numpy array
+    :param target_rgb: target image in RGB color space (0-255) on numpy array
+    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
+    """
+    if source_rgb.ndim != 3 and target_rgb.ndim != 3:
+        print('pictures must have 3 dimensions')
+    vres, hres, dim = source_rgb.shape
+    source = (source_rgb / 255.).reshape(-1, dim)
+    target = (target_rgb / 255.).reshape(-1, dim)
+
+    source_cov = np.cov(source.T)
+    target_cov = np.cov(target.T)
+
+    t = mkl(source_cov, target_cov)
+
+    mx0 = np.mean(source, axis=0)
+    mx1 = np.mean(target, axis=0)
+
+    xr = (source - mx0) @ t + mx1
+
+    return np.multiply(xr.reshape(source_rgb.shape), 255).astype(np.uint8)
+
+def mkl(source_cov, target_cov):
+
+    da2, ua = np.linalg.eig(source_cov)
+    da = np.diag(np.sqrt(da2.clip(eps, None)))
+
+    c = da @ ua.T @ target_cov @ ua @ da
+
+    dc2, uc = np.linalg.eig(c)
+    dc = np.diag(np.sqrt(dc2.clip(eps, None)))
+
+    da_inv = np.diag(1. / (np.diag(da)))
+
+    return ua @ da_inv @ uc @ dc @ uc.T @ da_inv @ ua.T
+
 def REGRAIN_CX(source_rgb, target_rgb):
-    idt_rgb = idt_cx(source_rgb, target_rgb, bins=300, n_rot=30, relaxation=1)
+    if source_rgb.ndim != 3 and target_rgb.ndim != 3:
+        print('pictures must have 3 dimensions')
+    idt_rgb = IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1)
     return regrain_cx(source_rgb, idt_rgb)
 
-def regrain_cx(source_rgb, target_rgb):#, varargin=None):
+def regrain_cx(source_rgb, target_rgb):
     """
     https://github.com/pengbo-learn/python-color-transfer/blob/master/python_color_transfer/color_transfer.py
     :param source_rgb:
     :param target_rgb:
-    :param varargin:
     :return:
     """
-    source = np.divide(source_rgb, 255)
-    target = np.divide(target_rgb, 255)
-    # numvarargs = len(varargin)
-    # if numvarargs > 1:
-    #     print('regrain :TooManyInputs requires at most 1 optional input')
-    # optargs = np.ones(1)
-    # optargs[1: numvarargs] = varargin
-    # [smoothness] = optargs[:]
+    source = source_rgb / 255.
+    target = target_rgb / 255.
 
-    source_rgb_regrain = np.zeros_like(source_rgb)
-    output = regrain_rec(source_rgb_regrain, source, target, nbits=np.array([4, 16, 32, 64, 64, 64]), smoothness=1, level=0)
-    return np.multiply(output, 255).astype(np.uint8)
+    source_regrain = np.zeros_like(source_rgb)
+    output = regrain_rec(source_regrain, source, target, n_bits=np.array([4, 16, 32, 64, 64, 64]), smoothness=1, level=0)
+    return (output * 255.).astype(np.uint8)
 
-def solve(source_rgb_regrain, source_rgb, target_rgb, nbits, smoothness, level):
-    
-    [vres, hres, k] = source_rgb.shape
+def solve(source_regrain, source, target, n_bits, smoothness, level):
+    """
+    :param source_regrain:
+    :param source:
+    :param target:
+    :param n_bits:
+    :param smoothness:
+    :param level:
+    :return:
+    """
+    [_, _, k] = source.shape
 
-    g = source_rgb
+    g = source
 
     gx1 = np.concatenate((g[:, 1:, :], g[:, [-1], :]), axis=1)
     gx2 = np.concatenate((g[:, [0], :], g[:, 0:-1, :]), axis=1)
     gy1 = np.concatenate((g[1:, :, :], g[[-1], :, :]), axis=0)
     gy2 = np.concatenate((g[[0], :, :], g[0:-1, :, :]), axis=0)
-    gx = np.subtract(gx1, gx2)
-    gy = np.subtract(gy1, gy2)
+    gx = gx1 - gx2
+    gy = gy1 - gy2
     dI = np.sqrt(np.sum((np.add(gx**2, gy**2)), axis=2))
 
     h = 2 ** (-level)
-    psi = np.divide(np.multiply(256, dI), 5)
-    psi[psi > 1] = 1
+    psi = (256. * dI / 5.).clip(None, 1)
+
     phi = 30. / (1 + 10 * dI / max(smoothness, eps)) * h
 
     p1 = lambda arr: np.concatenate((arr[:, 1:], arr[:, -1:]), axis=1)
@@ -64,514 +102,143 @@ def solve(source_rgb_regrain, source_rgb, target_rgb, nbits, smoothness, level):
     p3 = lambda arr: np.concatenate((arr[:, :1], arr[:, :-1]), axis=1)
     p4 = lambda arr: np.concatenate((arr[:1, :], arr[:-1, :]), axis=0)
 
-    phi1 = np.divide(np.add(p1(phi), phi), 2)
-    phi2 = np.divide(np.add(p2(phi), phi), 2)
-    phi3 = np.divide(np.add(p3(phi), phi), 2)
-    phi4 = np.divide(np.add(p4(phi), phi), 2)
+    phi1 = (p1(phi) + phi) / 2
+    phi2 = (p2(phi) + phi) / 2
+    phi3 = (p3(phi) + phi) / 2
+    phi4 = (p4(phi) + phi) / 2
 
     rho = 1/5
-    for i in range(nbits):
-        #den = psi + phi1 + phi2 + phi3 + phi4 #np.add(np.add(np.add(np.add(psi, phi1), phi2), phi3), phi4)
-        den = np.add(np.add(np.add(np.add(psi, phi1), phi2), phi3), phi4) + eps
-        #xx = np.repeat(psi[:, :, np.newaxis], k, axis=2)
-        #xxx = xx * target_rgb
-        num = (np.repeat(psi[:, :, np.newaxis], k, axis=2) * target_rgb
-               + np.repeat(phi1[:, :, np.newaxis], k, axis=2) * (p1(source_rgb_regrain) - p1(source_rgb) + source_rgb)
-               + np.repeat(phi2[:, :, np.newaxis], k, axis=2) * (p2(source_rgb_regrain) - p2(source_rgb) + source_rgb)
-               + np.repeat(phi3[:, :, np.newaxis], k, axis=2) * (p3(source_rgb_regrain) - p3(source_rgb) + source_rgb)
-               + np.repeat(phi4[:, :, np.newaxis], k, axis=2) * (p4(source_rgb_regrain) - p4(source_rgb) + source_rgb))
-        source_rgb_regrain = num / np.repeat(den[:, :, np.newaxis], k, axis=2) * (1 - rho) + rho * source_rgb_regrain
+    for i in range(n_bits):
+        den = psi + phi1 + phi2 + phi3 + phi4
+        num = (np.repeat(psi[:, :, np.newaxis], k, axis=2) * target
+               + np.repeat(phi1[:, :, np.newaxis], k, axis=2) * (p1(source_regrain) - p1(source) + source)
+               + np.repeat(phi2[:, :, np.newaxis], k, axis=2) * (p2(source_regrain) - p2(source) + source)
+               + np.repeat(phi3[:, :, np.newaxis], k, axis=2) * (p3(source_regrain) - p3(source) + source)
+               + np.repeat(phi4[:, :, np.newaxis], k, axis=2) * (p4(source_regrain) - p4(source) + source))
+        source_regrain = num / np.repeat(den[:, :, np.newaxis], k, axis=2) * (1 - rho) + rho * source_regrain
 
-    return source_rgb_regrain
+    return source_regrain
 
-def regrain_rec(source_rgb_regrain, source_rgb, target_rgb, nbits, smoothness, level):
-    [vres, hres, k] = source_rgb.shape
+def regrain_rec(source_regrain, source, target, n_bits, smoothness, level):
+    """
+    :param source_regrain:
+    :param source:
+    :param target:
+    :param n_bits:
+    :param smoothness:
+    :param level:
+    :return:
+    """
+    vres, hres, _ = source.shape
+
     vres2 = int(np.ceil(vres / 2))
     hres2 = int(np.ceil(hres / 2))
 
-    if len(nbits) > 1 and vres2 > 20 and hres2 > 20:
-        resize_source_rgb = cv2.resize(source_rgb, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
-        resize_target_rgb = cv2.resize(target_rgb, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
-        resize_source_rgb_regrain = cv2.resize(source_rgb_regrain, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
-        resize_source_rgb_regrain = regrain_rec(resize_source_rgb_regrain, resize_source_rgb, resize_target_rgb, nbits[1:], smoothness, level=level+1)
-        source_rgb_regrain = cv2.resize(resize_source_rgb_regrain, (hres, vres), interpolation=cv2.INTER_LINEAR)
+    if len(n_bits) > 1 and vres2 > 20 and hres2 > 20:
+        source_resize = cv2.resize(source, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
+        target_resize = cv2.resize(target, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
+        source_regrain_resize = cv2.resize(source_regrain, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
+        source_regrain_resize = regrain_rec(source_regrain_resize, source_resize, target_resize, n_bits[1:], smoothness, level=level+1)
+        source_regrain = cv2.resize(source_regrain_resize, (hres, vres), interpolation=cv2.INTER_LINEAR)
 
-    source_rgb_regrain = solve(source_rgb_regrain, source_rgb, target_rgb, nbits[0], smoothness, level)
-
-    return source_rgb_regrain
-
-def MKL_CX(source_rgb, target_rgb, conversion):
-    if conversion == 'matlab':
-        return matlab_mkl_cx(source_rgb, target_rgb)
-    elif conversion == 'recode':
-        return mkl_cx(source_rgb, target_rgb)
-
-def mkl_cx(source_rgb, target_rgb):
-    """
-    Probability Density Function (PDF) Monge-Kantorovitch linear (MKL) Color transfer (CX)
-    :param source_rgb: source image in RGB color space (0-255) on numpy array
-    :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
-    """
-    source = np.divide(source_rgb, 255)
-    target = np.divide(target_rgb, 255)
-
-    #source_rgb = pd.DataFrame(source.reshape(-1, source.shape[-1]), columns=['r', 'g', 'b']).values
-    #target_rgb = pd.DataFrame(target.reshape(-1, target.shape[-1]), columns=['r', 'g', 'b']).values
-    source_rgb = source.reshape(-1, source.shape[-1])
-    target_rgb = target.reshape(-1, target.shape[-1])
-
-    a = np.cov(source_rgb.T)
-    b = np.cov(target_rgb.T)
-
-    Da2, Ua = np.linalg.eig(a)
-    Da = np.diag(np.sqrt(Da2.clip(eps, None)))
-
-    C = np.dot(np.dot(np.dot(np.dot(Da, Ua.T), b), Ua), Da)
-
-    Dc2, Uc = np.linalg.eig(C)
-    Dc = np.diag(np.sqrt(Dc2.clip(eps, None)))
-
-    Da_inv = np.diag(1. / (np.diag(Da)))
-
-    t = np.dot(np.dot(np.dot(np.dot(np.dot(np.dot(Ua, Da_inv), Uc), Dc), Uc.T), Da_inv), Ua.T)
-
-    mx0 = np.mean(source_rgb, axis=0)
-    mx1 = np.mean(target_rgb, axis=0)
-
-    xr = np.add(np.dot(np.subtract(source_rgb, mx0), t), mx1)
-
-    a_result = xr
-    xx = a_result.reshape(source.shape)
-    output_rgb = np.multiply(xx, 255).astype(np.uint8)
-
-    return output_rgb
-
-def matlab_mkl_cx(source_rgb, target_rgb):
-    """
-
-    :param source_rgb: source image in RGB color space (0-255) on numpy array
-    :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
-    """
-    source = np.divide(source_rgb, 255)
-    target = np.divide(target_rgb, 255)
-
-    if source.ndim != 3:
-        print('pictures must have 3 dimensions')
-    # reshape images
-    source_rgb = source.reshape(-1, source.shape[-1])
-    target_rgb = target.reshape(-1, target.shape[-1])
-
-    a = np.cov(source_rgb.T)
-    b = np.cov(target_rgb.T)
-
-    t = mkl(a, b)
-
-    mx0 = np.mean(source_rgb, axis=0)
-    mx1 = np.mean(target_rgb, axis=0)
-
-    xr = np.add(np.dot(np.subtract(source_rgb, mx0), t), mx1)
-
-    irv = xr.values
-
-    xx = irv.reshape(source.shape)
-    output_rgb = np.multiply(xx, 255).astype(np.uint8)
-
-    return output_rgb
-
-def mkl(a, b):
-    da2, ua = np.linalg.eig(a)
-    da = np.diag(np.sqrt(da2.clip(eps, None)))
-    c = np.dot(np.dot(np.dot(np.dot(da, ua.T), b), ua), da)
-    dc2, uc = np.linalg.eig(c)
-    dc = np.diag(np.sqrt(dc2.clip(eps, None)))
-    da_inv = np.diag(1. / (np.diag(da)))
-    t = np.dot(np.dot(np.dot(np.dot(np.dot(np.dot(ua, da_inv), uc), dc), uc.T), da_inv), ua.T)
-    return t
-#
-def IDT_CX(source_rgb, target_rgb, conversion):
-    """
-    Probability Density Function (PDF) Iterative Distribution Transfer (IDT) Color transfer (CX)
-    :param source_rgb:
-    :param target_rgb:
-    :param conversion:
-    :return:
-    """
-    if conversion == 'matlab':
-        #return matlab2_idt_cx(source_rgb, target_rgb, bins=300, nb_iterations=10, rotation_type='')
-        return matlab_idt_cx(source_rgb, target_rgb, nb_iterations=30, rotation_type='')
-    elif conversion == 'recode':
-        return idt_cx(source_rgb, target_rgb, bins=300, n_rot=30, relaxation=1)
+    return solve(source_regrain, source, target, n_bits[0], smoothness, level)
 
 # F. Pitie 2005 N-Dimensional PDF Transfer Iterative Distribution Transfer
-def idt_cx(source_rgb, target_rgb, bins, n_rot, relaxation=1):
+def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
     """
     Probability Density Function (PDF) Iterative Distribution Transfer (IDT) Color transfer (CX)
+    [Pitie05a] Pitie et al. N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer.
+    [Pitie05b] Pitie et al. Towards Automated Colour Grading. CVMP05.
+    [Pitie07a] Pitie et al. Automated colour grading using colour distribution transfer. CVIU. 2007.
     :param source_rgb:
     :param target_rgb:
     :param bins:
-    :param n_rot:
+    :param nb_iterations:
     :param relaxation:
     :return:
     """
-
-    eps32 = 1e-6
-    source = np.divide(source_rgb, 255)
-    target = np.divide(target_rgb, 255)
-    if source.ndim != 3:
+    if source_rgb.ndim != 3 and target_rgb.ndim != 3:
         print('pictures must have 3 dimensions')
-        # reshape images
-    source = source.transpose().reshape(source.shape[-1], -1)
-    target = target.transpose().reshape(target.shape[-1], -1)
 
-    n_dims = source.shape[0]
-    d0 = source
-    d1 = target
-    rot = np.array(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [2 / 3, 2 / 3, -1 / 3], [2 / 3, -1 / 3, 2 / 3], [-1 / 3, 2 / 3, 2 / 3]])
-    rotation = np.zeros((n_rot, rot.shape[0], rot.shape[1]))
-    for i in range(n_rot):
+    vres, hres, dim = source_rgb.shape
+
+    # reshape images and normalized RGB
+    source_reshape = source_rgb.T.reshape(dim, -1) / 255.
+    target_reshape = target_rgb.T.reshape(dim, -1) / 255.
+
+    # implementation of N-Dimensional PDF Transfer
+    source = pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation)
+
+    # reshape back to image and denormalized RGB
+    output_r = source[0, :].reshape((hres, vres)).T * 255.
+    output_g = source[1, :].reshape((hres, vres)).T * 255.
+    output_b = source[2, :].reshape((hres, vres)).T * 255.
+
+    return cv2.merge([output_r, output_g, output_b]).astype(np.uint8)
+
+def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation):
+    """
+    :param source_reshape:
+    :param target_reshape:
+    :param bins:
+    :param nb_iterations:
+    :param relaxation:
+    :return:
+    """
+    source = source_reshape
+    n_dim = source_reshape.shape[0]
+
+    # simple implementation of N-Dimensional PDF Transfer
+    first_rotation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [2 / 3, 2 / 3, -1 / 3], [2 / 3, -1 / 3, 2 / 3], [-1 / 3, 2 / 3, 2 / 3]])
+    for i in range(nb_iterations):
+
         #  create a random orthonormal matrix
-        ortho = special_ortho_group.rvs(n_dims).astype(np.float)
-        r = rot @ ortho if i > 0 else rot
-        d0r = np.matmul(r, d0)
-        d1r = np.matmul(r, d1)
-        d_r = np.empty_like(d0r)
-        nb_projs = r.shape[0]
-        for j in range(nb_projs):
-            lo = min(d0r[j].min(), d1r[j].min()) - eps
-            hi = max(d0r[j].max(), d1r[j].max()) + eps
-            p0r, edges = np.histogram(d0r[j], bins=bins-1, range=[lo, hi])
-            p1r, _ = np.histogram(d1r[j], bins=bins-1, range=[lo, hi])
-            #xs = xs[1:]
-            #cp0r = np.add(p0r, eps).cumsum().astype(np.float)
-            cp0r = np.add(p0r, eps).cumsum()
-            d_0 = cp0r / cp0r[-1]
-            #cp0r /= cp0r[-1]
-            #cp1r = np.add(p1r, eps).cumsum().astype(np.float)
-            cp1r = np.add(p1r, eps).cumsum()
-            d_1 = cp1r / cp1r[-1]
-            #cp1r /= cp1r[-1]
-            f = np.interp(d_0, d_1, edges[:-1])
-            d_r[j] = np.interp(d0r[j], edges[1:], f.T, left=0, right=bins-1)
-
-        d0 = relaxation * np.matmul(np.linalg.pinv(r), (d_r - d0r)) + d0
-    output_r = np.multiply(d0[0, :].reshape((source_rgb.shape[1], source_rgb.shape[0])).T, 255).astype(np.uint8)
-    output_g = np.multiply(d0[1, :].reshape((source_rgb.shape[1], source_rgb.shape[0])).T, 255).astype(np.uint8)
-    output_b = np.multiply(d0[2, :].reshape((source_rgb.shape[1], source_rgb.shape[0])).T, 255).astype(np.uint8)
-    return cv2.merge([output_r, output_g, output_b])
-
-def matlab2_idt_cx(source_rgb, target_rgb, bins, nb_iterations, rotation_type):
-    if (source_rgb.ndim != 3):
-        print('pictures must have 3 dimensions')
-        # Normalized RGB
-    source = np.divide(source_rgb, 255)
-    (source_l, source_a, source_b) = cv2.split(source)
-    target = np.divide(target_rgb, 255)
-    (target_l, target_a, target_b) = cv2.split(target)
-    nb_channels = source.ndim
-    # reshape images as 3xN matrices
-    # source_rgb_reshape = []
-    # target_rgb_reshape = []
-    # for i in range(nb_channels):
-    #     source_rgb_reshape[i, :] = np.reshape(source_rgb[:, :, i], (1, source_rgb.shape[0] * source_rgb.shape[1]))
-    #     target_rgb_reshape[i, :] = np.reshape(target_rgb[:, :, i], (1, target_rgb.shape[0] * target_rgb.shape[1]))
-    source_rgb_reshape = source.transpose().reshape(source.shape[-1], -1)  # source.reshape(-1, source.shape[-1])
-    target_rgb_reshape = target.transpose().reshape(target.shape[-1], -1)  # target.reshape(-1, target.shape[-1])
-    # building a sequence of (almost) random projections
-    rot = np.array(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [2 / 3, 2 / 3, -1 / 3], [2 / 3, -1 / 3, 2 / 3], [-1 / 3, 2 / 3, 2 / 3]])
-    rotation = np.zeros((nb_iterations, rot.shape[0], rot.shape[1]))
-    if rotation_type == 'optimal':
-        rotation = optimal_rotations
-    elif rotation_type == 'random':
-        rotation[0, :] = rot
-        for i in range(1, nb_iterations):
-            r = random_rotations()
-            rotation[i, :] = r
-    elif rotation_type == 'generate':
-        rotation = generate_rotations(nb_channels, nb_iterations)
-    else:
-        rotation[0, :] = rot
-        for i in range(1, nb_iterations):
-            r = special_ortho_group.rvs(3).astype(np.float)
-            rotation[i, :, ] = rot.dot(r)
-    #data_rotation = pdf_transfer_matlab(source_rgb_reshape, target_rgb_reshape, rotation, [1])
-    numvarargs = len([1])
-    if numvarargs > 1:
-        print('pdf_transfer:TooManyInputs, requires at most 1 optional input')
-
-    # cell array = numpy object array
-    optargs = np.ones(1)
-    optargs[1: numvarargs] = 1
-    [relaxation] = optargs[:]
-
-    prompt = ''
-    for it in range(nb_iterations):
-        print('IDT iteration ', it, '/', nb_iterations)
-        r = rotation[it]
-        nb_projs = r.shape[0]
+        orthonormal_matrix = special_ortho_group.rvs(n_dim).astype(np.float32)
+        rotation = first_rotation @ orthonormal_matrix if i > 0 else first_rotation
 
         # apply rotation
-        source_rgb_rot = np.matmul(r, source_rgb_reshape)
-        target_rgb_rot = np.matmul(r, target_rgb_reshape)
-        source_rgb_rot_ = np.zeros_like(source_rgb_rot)
+        source_rotation = rotation @ source
+        target_rotation = rotation @ target_reshape
+        source_rotation_ = np.empty_like(source_rotation)
+        nb_projections = rotation.shape[0]
 
         # get the marginals, match them, and apply transformation
-        for i in range(nb_projs):
+        for j in range(nb_projections):
             # get the data range
-            datamin = min(min(source_rgb_rot[i, :]), min(target_rgb_rot[i, :])) - eps
-            datamax = max(max(source_rgb_rot[i, :]), max(target_rgb_rot[i, :])) + eps
-            # bin 300 from datamax datamin used numpy linespace #####
-            u = np.linspace(datamin, datamax, num=bins + 1)
-            # xs = np.array([datamin + (datamax - datamin) * xi / n for xi in range(n + 1)])
-            # np.array([j * (datamax - datamin) + datamin for j in range(n)]) sda
+            data_min = min(source_rotation[j].min(), target_rotation[j].min()) - eps
+            data_max = max(source_rotation[j].max(), target_rotation[j].max()) + eps
+
             # get the projections
-            source_hist_projs, edges = np.histogram(source_rgb_rot[i, :], bins=bins, range=[datamin, datamax])
-            target_hist_projs, _ = np.histogram(target_rgb_rot[i, :], bins=bins, range=[datamin, datamax])
-            # get the transport map
-            #f = one_dim_pdf_transfer_matlab(source_hist_projs, target_hist_projs)
-            eps1 = 1e-6
-            source_rgb_cumsum = np.cumsum(np.add(source_hist_projs, eps1))
-            source_rgb_cs = np.divide(source_rgb_cumsum, source_rgb_cumsum[-1])
+            source_projections, edges = np.histogram(source_rotation[j], bins=bins - 1, range=[data_min, data_max])
+            target_projections, _ = np.histogram(target_rotation[j], bins=bins - 1, range=[data_min, data_max])
 
-            target_rgb_cumsum = np.cumsum(np.add(target_hist_projs, eps1))
-            target_rgb_cs = np.divide(target_rgb_cumsum, target_rgb_cumsum[-1])
-            #  inversion
-            xs = np.linspace(0, bins - 1, num=bins)
+            f = one_d_pdf_transfer(source_projections, target_projections, edges)
 
-            f = np.interp(source_rgb_cs, target_rgb_cs, edges[1:])
-            # f = interpolate.interp1d(interpolate.interp1d, target_rgb_cumsum, xs)
-            f[source_rgb_cs <= target_rgb_cs[0]] = 0
-            f[source_rgb_cs >= target_rgb_cs[-1]] = bins - 1
-            xs = u[:-1]
             # apply the mapping
-            t1 = np.interp(source_rgb_rot[i, :], xs, f.T)
-            t2 = np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1)
-            t3 = np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (bins - 1)
-            t4 = np.subtract(datamax, datamin)
-            t5 = np.multiply(np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (bins - 1), np.subtract(datamax, datamin))
-            t6 = np.add(np.multiply(np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (bins - 1), np.subtract(datamax, datamin)), datamin)
-            # source_rgb_rot_[i, :] = t6
-            source_rgb_rot_[i] = np.interp(source_rgb_rot[i], edges[1:], f, left=0, right=bins)
-            # source_rgb_rot_[i, :] = np.add(
-            #     np.multiply(np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (bins - 1),
-            #                 np.subtract(datamax, datamin)), datamin)
+            source_rotation_[j] = np.interp(source_rotation[j], edges[1:], f.T, left=0, right=bins - 1)
 
-        xx = np.subtract(source_rgb_rot_, source_rgb_rot)
-        ri = np.linalg.pinv(r)
-        # #(6,3)/(6,173641) cannot divide need to find out solution
-        xxx = np.matmul(ri, xx)
-        xxxx = relaxation * xxx
-        xxxxx = xxxx + source_rgb_reshape
-        source_rgb_reshape = relaxation * np.matmul(np.linalg.pinv(r), (source_rgb_rot_ - source_rgb_rot)) + source_rgb_reshape
-        #source_rgb_reshape = xxxxx #np.dot(relaxation, (np.matmul(np.linalg.pinv(r), (np.subtract(source_rgb_rot_, source_rgb_rot))))) + source_rgb_reshape
+        source = relaxation * np.linalg.pinv(rotation) @ (source_rotation_ - source_rotation) + source
 
-    output_rgb = source
-    t1 = source_rgb_reshape.transpose()
-    t2 = t1.reshape(source.shape)
-    # for i in range(nb_channels):
-    #    output_rgb[:, :, i] = np.reshape(data_rotation[i, :], (output_rgb.shape[0], output_rgb.shape[1]))
-    xx = np.multiply(t2, 255).astype(np.uint8)
+    return source
 
-    return xx
-def matlab_idt_cx(source_rgb, target_rgb, nb_iterations, rotation_type):
-    if(source_rgb.ndim != 3):
-        print('pictures must have 3 dimensions')
-    # Normalized RGB
-    source = np.divide(source_rgb, 255)
-    (source_l, source_a, source_b) = cv2.split(source)
-    target = np.divide(target_rgb, 255)
-    (target_l, target_a, target_b) = cv2.split(target)
-    nb_channels = source.ndim
-    # reshape images as 3xN matrices
-    # source_rgb_reshape = []
-    # target_rgb_reshape = []
-    # for i in range(nb_channels):
-    #     source_rgb_reshape[i, :] = np.reshape(source_rgb[:, :, i], (1, source_rgb.shape[0] * source_rgb.shape[1]))
-    #     target_rgb_reshape[i, :] = np.reshape(target_rgb[:, :, i], (1, target_rgb.shape[0] * target_rgb.shape[1]))
-    source_rgb_reshape = source.transpose().reshape(source.shape[-1], -1) #source.reshape(-1, source.shape[-1])
-    target_rgb_reshape = target.transpose().reshape(target.shape[-1], -1) #target.reshape(-1, target.shape[-1])
-    # building a sequence of (almost) random projections
-    rot = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [2 / 3, 2 / 3, -1 / 3], [2 / 3, -1 / 3, 2 / 3], [-1 / 3, 2 / 3, 2 / 3]])
-    rotation = np.zeros((nb_iterations, rot.shape[0], rot.shape[1]))
-    if rotation_type == 'optimal':
-        rotation = optimal_rotations
-    elif rotation_type == 'random':
-        rotation[0, :] = rot
-        for i in range(1, nb_iterations):
-            r = random_rotations()
-            rotation[i, :] = r
-    elif rotation_type == 'generate':
-        rotation = generate_rotations(nb_channels, nb_iterations)
-    else:
-        rotation[0, :] = rot
-        for i in range(1, nb_iterations):
-            r = special_ortho_group.rvs(3).astype(np.float)
-            rotation[i, :, ] = rot.dot(r)
-    data_rotation = pdf_transfer_matlab(source_rgb_reshape, target_rgb_reshape, rotation, [1])
-    # output_rgb = source
-    # t1 = data_rotation.transpose()
-    # t2 = t1.reshape(source.shape)
-    # #for i in range(nb_channels):
-    # #    output_rgb[:, :, i] = np.reshape(data_rotation[i, :], (output_rgb.shape[0], output_rgb.shape[1]))
-    # xx = np.multiply(t2, 255).astype(np.uint8)
-    output_r = np.multiply(data_rotation[0, :].reshape((source_rgb.shape[1], source_rgb.shape[0])).T, 255).astype(np.uint8)
-    output_g = np.multiply(data_rotation[1, :].reshape((source_rgb.shape[1], source_rgb.shape[0])).T, 255).astype(np.uint8)
-    output_b = np.multiply(data_rotation[2, :].reshape((source_rgb.shape[1], source_rgb.shape[0])).T, 255).astype(np.uint8)
-    return cv2.merge([output_r, output_g, output_b])
-
-def pdf_transfer(source_rgb, target_rgb, optimal=True, n=300, step_size=1):
+def one_d_pdf_transfer(source_projections, target_projections, edges):
     """
-    :param source_rgb:
-    :param target_rgb:
-    :param optimal: True = Optimal rotation matrices from paper, False = Random rotation matrices.
-    :param n:
-    :param step_size:
+    discretization as histogram
+    :param source_rotation:
+    :param target_rotation:
     :return:
     """
-    # reshape (h, w, c) to (c, h*w) wrong here *******************
-    [w, c] = source_rgb.shape
-    reshape_arr_in = source_rgb.reshape(-1, c).transpose() / 255.
-    reshape_arr_ref = target_rgb.reshape(-1, c).transpose() / 255.
-    # pdf transfer
-    # n times of 1d-pdf-transfer
-    arr_out = np.array(reshape_arr_in)
-    rotation_matrices = random_rotations
-    if optimal:
-        rotation_matrices = optimal_rotations
-    for rotation_matrix in rotation_matrices:
-        rot_arr_in = np.matmul(rotation_matrix, arr_out)
-        rot_arr_ref = np.matmul(rotation_matrix, reshape_arr_ref)
-        rot_arr_out = np.zeros(rot_arr_in.shape)
-        for i in range(rot_arr_out.shape[0]):
-            rot_arr_out[i] = one_dim_pdf_transfer(rot_arr_in[i], rot_arr_ref[i], n)
-        # func = lambda x, n : self._pdf_transfer_1d(x[:n], x[n:])
-        # rot_arr = np.concatenate((rot_arr_in, rot_arr_ref), axis=1)
-        # rot_arr_out = np.apply_along_axis(func, 1, rot_arr, rot_arr_in.shape[1])
-        rot_delta_arr = rot_arr_out - rot_arr_in
-        delta_arr = np.matmul(rotation_matrix.transpose(), rot_delta_arr)
-        # np.linalg.solve(rotation_matrix, rot_delta_arr)
-        arr_out = step_size * delta_arr + arr_out
-    # reshape (c, h*w) to (h, w, c)
-    arr_out[arr_out < 0] = 0
-    arr_out[arr_out > 1] = 1
-    reshape_arr_out = (255. * arr_out).astype('uint8')
-    img_arr_out = reshape_arr_out.transpose().reshape(w, c)
-    return img_arr_out
+    eps_6 = 1e-6
 
-def pdf_transfer_matlab(source_rgb, target_rgb, rotations, varargin, n=300):
-    """
-    :param source_rgb:
-    :param target_rgb:
-    :param Rotations:
-    :param varargin: 1x1 cell array
-    :return:
-    """
-    nb_iterations = len(rotations)
+    # get the transport map on 1-Dimensional PDF Transfer small damping term that facilitate the inversion
+    source_cum_projections = (source_projections + eps_6).cumsum()
+    source_damp = source_cum_projections / source_cum_projections[-1]
 
-    numvarargs = len(varargin)
-    if numvarargs > 1:
-        print('pdf_transfer:TooManyInputs, requires at most 1 optional input')
+    target_cum_projections = (target_projections + eps_6).cumsum()
+    target_damp = target_cum_projections / target_cum_projections[-1]
 
-    # cell array = numpy object array
-    optargs = np.ones(1)
-    optargs[1: numvarargs] = varargin
-    [relaxation] = optargs[:]
-
-    prompt = ''
-    for it in range(nb_iterations):
-        print('IDT iteration ', it, '/', nb_iterations)
-        r = rotations[it]
-        nb_projs = r.shape[0]
-
-        # apply rotation
-        source_rgb_rot = np.matmul(r, source_rgb)
-        target_rgb_rot = np.matmul(r, target_rgb)
-        source_rgb_rot_ = np.zeros_like(source_rgb_rot)
-
-        # get the marginals, match them, and apply transformation
-        for i in range(nb_projs):
-            # get the data range
-            datamin = min(min(source_rgb_rot[i, :]), min(target_rgb_rot[i, :])) - eps
-            datamax = max(max(source_rgb_rot[i, :]), max(target_rgb_rot[i, :])) + eps
-            # bin 300 from datamax datamin used numpy linespace #####
-            u = np.linspace(datamin, datamax, num=n+1)
-            #xs = np.array([datamin + (datamax - datamin) * xi / n for xi in range(n + 1)])
-            #np.array([j * (datamax - datamin) + datamin for j in range(n)]) sda
-            # get the projections
-            source_hist_projs, _ = np.histogram(source_rgb_rot[i, :], u)
-            target_hist_projs, _ = np.histogram(target_rgb_rot[i, :], u)
-            # get the transport map
-            f = one_dim_pdf_transfer_matlab(source_hist_projs, target_hist_projs)
-            xs = u[:-1]
-            # apply the mapping
-            # t1 = np.interp(source_rgb_rot[i, :], xs, f.T)
-            # t2 = np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1)
-            # t3 = np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (n - 1)
-            # t4 = np.subtract(datamax, datamin)
-            # t5 = np.multiply(np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (n - 1), np.subtract(datamax, datamin))
-            # t6 = np.add(np.multiply(np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (n - 1), np.subtract(datamax, datamin)), datamin)
-            # source_rgb_rot_[i, :] = t6
-            source_rgb_rot_[i, :] = np.add(np.multiply(np.subtract(np.interp(source_rgb_rot[i, :], xs, f.T), 1) / (n - 1), np.subtract(datamax, datamin)), datamin)
-
-        # xx = np.subtract(source_rgb_rot_, source_rgb_rot)
-        # ri = np.linalg.pinv(r)
-        # #(6,3)/(6,173641) cannot divide need to find out solution
-        # xxx = np.matmul(ri, xx)
-        # xxxx = np.dot(relaxation, xxx)
-        # xxxxx = np.add(xxxx, source_rgb)
-        source_rgb = np.add(np.dot(relaxation, (np.matmul(np.linalg.pinv(r), np.subtract(source_rgb_rot_, source_rgb_rot)))), source_rgb)
-
-    return source_rgb
-
-# F. Pitie 2005 N-Dimensional PDF Transfer
-def one_dim_pdf_transfer(source_rgb, target_rgb, n):
-    arr = np.concatenate((source_rgb, target_rgb))
-    eps1 = 1e-6
-    # discretization as histogram
-    min_v = arr.min() - eps
-    max_v = arr.max() + eps
-    xs = np.array([min_v + (max_v - min_v) * i / n for i in range(n + 1)])
-    hist_in, _ = np.histogram(source_rgb, xs)
-    hist_ref, _ = np.histogram(target_rgb, xs)
-    xs = xs[:-1]
-    # compute probability distribution
-    cum_in = np.cumsum(hist_in)
-    cum_ref = np.cumsum(hist_ref)
-    d_in = cum_in / cum_in[-1]
-    d_ref = cum_ref / cum_ref[-1]
-    # tranfer
-    t_d_in = np.interp(d_in, d_ref, xs)
-    t_d_in[d_in <= d_ref[0]] = min_v
-    t_d_in[d_in >= d_ref[-1]] = max_v
-    arr_out = np.interp(source_rgb, xs, t_d_in)
-    return arr_out
-
-def one_dim_pdf_transfer_matlab(source_hist, target_hist):
-
-    nbins = max(source_hist.shape)
-
-    eps1 = 1e-6
-    source_rgb_cumsum = np.cumsum(np.add(source_hist, eps1))
-    source_rgb_cs = np.divide(source_rgb_cumsum, source_rgb_cumsum[-1])
-
-    target_rgb_cumsum = np.cumsum(np.add(target_hist, eps1))
-    target_rgb_cs = np.divide(target_rgb_cumsum, target_rgb_cumsum[-1])
-
-    #  inversion
-    xs = np.linspace(0, nbins-1, num=nbins)
-
-    f = np.interp(source_rgb_cs, target_rgb_cs, xs)
-    #f = interpolate.interp1d(interpolate.interp1d, target_rgb_cumsum, xs)
-    f[source_rgb_cs <= target_rgb_cs[0]] = 0
-    f[source_rgb_cs >= target_rgb_cs[-1]] = nbins - 1
-
-    #if np.nansum(f) > 0:
-    #    print('colour_transfer:pdf_transfer:NaN pdf_transfer has generated NaN values')
-
-    return f
+    # inversion
+    return np.interp(source_damp, target_damp, edges[:-1])
 
 def Mean_CX(source_rgb, target_rgb, conversion):
     """
@@ -586,10 +253,12 @@ def Mean_CX(source_rgb, target_rgb, conversion):
                              http://erikreinhard.com/papers/colourtransfer.pdf
     :return: output image in RGB color space (0-255) on numpy array
     """
+    if source_rgb.ndim != 3 and target_rgb.ndim != 3:
+        print('pictures must have 3 dimensions')
     if conversion == 'opencv':
         return opencv_mean_cx(source_rgb, target_rgb)
     if conversion == 'matrix':
-        return matrix_mean_cv(source_rgb, target_rgb)
+        return matrix_mean_cx(source_rgb, target_rgb)
 
 def opencv_mean_cx(source_rgb, target_rgb):
     """
@@ -597,28 +266,26 @@ def opencv_mean_cx(source_rgb, target_rgb):
     using opencv-python package to convert between color space.
     :param source_rgb: source image in RGB color space (0-255) on numpy array
     :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
+    :return: corrected image in RGB color space (0-255) on numpy array
     """
     # convert from RGB to LAB color space for source and target
-    source_lab = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2LAB).astype("float32")
-    target_lab = cv2.cvtColor(target_rgb, cv2.COLOR_RGB2LAB).astype("float32")
+    source_lab = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2LAB).astype(np.float)
+    target_lab = cv2.cvtColor(target_rgb, cv2.COLOR_RGB2LAB).astype(np.float)
 
     # statistics and color correction
     correction = color_correction(source_lab, target_lab, True)
 
     # convert from LAB to RGB color space
-    output_rgb = cv2.cvtColor(correction.astype("uint8"), cv2.COLOR_LAB2RGB)
+    return cv2.cvtColor(correction.astype(np.uint8), cv2.COLOR_LAB2RGB)
 
-    return output_rgb
-
-def matrix_mean_cv(source_rgb, target_rgb):
+def matrix_mean_cx(source_rgb, target_rgb):
     """
     Color transfer (CX) from target image's color characteristics into source image,
     Referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
     http://erikreinhard.com/papers/colourtransfer.pdf paper
     :param source_rgb: source image in RGB color space (0-255) on numpy array
     :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
+    :return: corrected image in RGB color space (0-255) on numpy array
     """
     # convert from RGB to LAB color space for source and target
     source_lab = cx_rgb2lab(source_rgb, True)
@@ -628,9 +295,7 @@ def matrix_mean_cv(source_rgb, target_rgb):
     correction = color_correction(source_lab, target_lab)
 
     # convert from LAB to RGB color space
-    output_rgb = cx_lab2rgb(correction, True)
-
-    return output_rgb
+    return cx_lab2rgb(correction, True)
 
 # Erik Reinhard 2001 Color Transfer between Images
 def color_correction(source_lab, target_lab, clip='False'):
@@ -641,7 +306,7 @@ def color_correction(source_lab, target_lab, clip='False'):
     :param source_lab: source image in lab color space on numpy array
     :param target_lab: target image in lab color space on numpy array
     :param clip: limit the data points range (0-255) for opencv-python conversion lab to RGB
-    :return: output_lab: corrected image in lab color space on numpy array
+    :return: corrected image in lab color space on numpy array
     """
     # split into individual channel space for statistics and color correction
     (source_l, source_a, source_b) = cv2.split(source_lab)
@@ -669,8 +334,4 @@ def color_correction(source_lab, target_lab, clip='False'):
         b = np.clip(b, 0, 255)
 
     # merge individual channel back into lab color space
-    output_lab = cv2.merge([l, a, b])
-
-    return output_lab
-
-
+    return cv2.merge([l, a, b])

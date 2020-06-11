@@ -100,24 +100,27 @@ import cv2
 #xx = np.matmul(np.linalg.pinv(arr4), arr5)
 #print(rotation)
 # eps = np.finfo(np.float32).eps
-# arr1 = np.array([[0, 1,  2, 3],
-#                  [4,  5, 6, 7],
-#                  [8, 9, 10, 11]])
-# arr = np.array([[[0, 12, 24],
-#                  [1, 13, 25],
-#                  [2, 14, 26],
-#                  [3, 15, 27]],
-#                 [[4, 16, 28],
-#                  [5, 17, 29],
-#                  [6, 18, 30],
-#                  [7, 19, 31]],
-#                 [[8, 20, 32],
-#                  [9, 21, 33],
-#                  [10, 22, 34],
-#                  [11, 23, 35]]])
-# [dim, row, col] = arr.shape
-# print('k=' + str(dim) + ' vres=' + str(row) + ' hres=' + str(col))
-# level = 3
+arr1 = np.array([[0, 1,  2, 3],
+                 [4,  5, 6, 7],
+                 [8, 9, 10, 11]])
+arr = np.array([[[0, 12, 24],
+                 [1, 13, 25],
+                 [2, 14, 26],
+                 [3, 15, 27]],
+                [[4, 16, 28],
+                 [5, 17, 29],
+                 [6, 18, 30],
+                 [7, 19, 31]],
+                [[8, 20, 32],
+                 [9, 21, 33],
+                 [10, 22, 34],
+                 [11, 23, 35]]])
+[vres, hres, dim] = arr.shape
+print('Vres=' + str(vres) + ' Hres=' + str(hres) + ' dimensions=' + str(dim))
+
+print(arr[0, :, :])
+print(arr[:, 0, :])
+print(arr[:, :, 0])
 # smoothness = 1
 #
 # p1 = lambda arr : np.concatenate((arr[:, 1:], arr[:, [-1]]), axis=1)

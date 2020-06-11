@@ -24,24 +24,10 @@ source_path2 = "images/scotland_house.png"
 target_path2 = "images/scotland_plain.png"
 transfer_path4 = "images/scotland_house_scotland_opencv.png"
 transfer_path5 = "images/scotland_house_scotland_matrix.png"
-transfer_path6 = "images/scotland_house_scotland_mkl_matlab.png"
-transfer_path7 = "images/scotland_house_scotland_mkl_recode.png"
-transfer_path8 = "images/scotland_house_scotland_idt_matlab.png"
-transfer_path9 = "images/scotland_house_scotland_idt_recode.png"
-transfer_path10 = "images/scotland_house_scotland_regrain_matlab.png"
-transfer_path11 = "images/scotland_house_scotland_regrain_recode.png"
+transfer_path6 = "images/scotland_house_scotland_idt.png"
+transfer_path7 = "images/scotland_house_scotland_regrain.png"
+transfer_path8 = "images/scotland_house_scotland_mkl.png"
 
-# 6) testing on idt + regrain matlab (F. Pitié) and recode on scotland_house and scotland_plain
-source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-transfer_rgb10 = ColorXfer(source_rgb2, target_rgb2, model='regrain')
-#transfer_rgb11 = ColorXfer(source_rgb2, target_rgb2, model='regrain', conversion='recode')
-transfer_bgr10 = cv2.cvtColor(transfer_rgb10, cv2.COLOR_RGB2BGR)
-#transfer_bgr11 = cv2.cvtColor(transfer_rgb11, cv2.COLOR_RGB2BGR)
-cv2.imwrite(transfer_path10, transfer_bgr10)
-#cv2.imwrite(transfer_path11, transfer_bgr11)
 
 # 1) testing on mean opencv and matrix on source1 and traget1 result on matrix match on paper
 # source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
@@ -79,29 +65,37 @@ cv2.imwrite(transfer_path10, transfer_bgr10)
 # cv2.imwrite(transfer_path4, transfer_bgr4)
 # cv2.imwrite(transfer_path5, transfer_bgr5)
 
-# 4) testing on mkl matlab (F. Pitié) and recode on scotland_house and scotland_plain
+# 4) testing on idt matlab (F. Pitié) and recode on scotland_house and scotland_plain
 # source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
 # source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
 # target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
 # target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-# transfer_rgb6 = ColorXfer(source_rgb2, target_rgb2, model='mkl', conversion='matlab')
-# transfer_rgb7 = ColorXfer(source_rgb2, target_rgb2, model='mkl', conversion='recode')
+# transfer_rgb6 = ColorXfer(source_rgb2, target_rgb2, model='idt')
 # transfer_bgr6 = cv2.cvtColor(transfer_rgb6, cv2.COLOR_RGB2BGR)
-# transfer_bgr7 = cv2.cvtColor(transfer_rgb7, cv2.COLOR_RGB2BGR)
 # cv2.imwrite(transfer_path6, transfer_bgr6)
+
+# 5) testing on idt + regrain matlab (F. Pitié) and recode on scotland_house and scotland_plain
+# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
+# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
+# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
+# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
+# transfer_rgb7 = ColorXfer(source_rgb2, target_rgb2, model='regrain')
+# transfer_bgr7 = cv2.cvtColor(transfer_rgb7, cv2.COLOR_RGB2BGR)
 # cv2.imwrite(transfer_path7, transfer_bgr7)
 
-# 5) testing on idt matlab (F. Pitié) and recode on scotland_house and scotland_plain
-# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-# transfer_rgb8 = ColorXfer(source_rgb2, target_rgb2, model='idt', conversion='matlab')
-# transfer_rgb9 = ColorXfer(source_rgb2, target_rgb2, model='idt', conversion='recode')
-# transfer_bgr8 = cv2.cvtColor(transfer_rgb8, cv2.COLOR_RGB2BGR)
-# transfer_bgr9 = cv2.cvtColor(transfer_rgb9, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path8, transfer_bgr8)
-# cv2.imwrite(transfer_path9, transfer_bgr9)
+# 6) testing on mkl matlab (F. Pitié) and recode on scotland_house and scotland_plain
+source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
+source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
+target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
+target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
+transfer_rgb8 = ColorXfer(source_rgb2, target_rgb2, model='mkl')
+transfer_bgr8 = cv2.cvtColor(transfer_rgb8, cv2.COLOR_RGB2BGR)
+cv2.imwrite(transfer_path8, transfer_bgr8)
+
+
+# ************* time took ******************
+# t = time.time()
+# print("took {} s to be remove after testing phase".format(time.time() - t))
 
 
 
