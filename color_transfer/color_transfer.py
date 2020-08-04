@@ -1,12 +1,12 @@
 from color_transfer.models import Mean_CX, MKL_CX, IDT_CX, REGRAIN_CX
 
-def ColorXfer(source_rgb, target_rgb, model, conversion=None):
+def ColourXfer(source_rgb, target_rgb, model, conversion=None):
     """
-    Color transfer from target image's color characteristics into source image,
-    by the selection color space conversion model.
-    :param source_rgb: source image in RGB color space (0-255) on numpy array uint8
-    :param target_rgb: target image in RGB color space (0-255) on numpy array uint8
-    :param conversion: two type color space conversions
+    Colour transfer from target image's colour characteristics into source image,
+    by the selection colour space conversion model.
+    :param source_rgb: source image in RGB colour space (0-255) on numpy array uint8
+    :param target_rgb: target image in RGB colour space (0-255) on numpy array uint8
+    :param conversion: two type colour space conversions
                   'opencv' = opencv-python package
                   'matrix' = equation referencing from Color Transfer between Images by Erik Reinhard's paper
                              http://erikreinhard.com/papers/colourtransfer.pdf
@@ -22,7 +22,7 @@ def ColorXfer(source_rgb, target_rgb, model, conversion=None):
                   'mkl' = compute using
                   The Linear Monge-Kantorovitch Linear Colour Mapping for Example-Based Colour Transfer by F. Pitié
                   https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cvmp.pdf
-    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array uint8
+    :return: output_rgb: corrected image in RGB colour space (0-255) on numpy array uint8
     """
 
     if model == 'mean':

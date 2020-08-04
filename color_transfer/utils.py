@@ -70,11 +70,11 @@ def cx_rgb2lab(image_rgb, log10):
 # Erik Reinhard 2001 Color Transfer between Images
 def cx_lab2rgb(image_lab, power10):
     """
-    Color space conversion from lab to RGB space.
+    Colour space conversion from lab to RGB space.
     Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
-    :param image_lab: image in lab color space on numpy array
+    :param image_lab: image in lab colour space on numpy array
     :param power10:
-    :return: image in RGB color space on numpy array
+    :return: image in RGB colour space on numpy array
     """
     # left of equation 8 to convert lab space to LMS space
     lab2lms_eq1 = [[1.0000, 1.0000, 1.0000],
@@ -94,7 +94,7 @@ def cx_lab2rgb(image_lab, power10):
                   [-1.2186, 2.3809, -0.1624],
                   [0.0497, -0.2439, 1.2045]]
 
-    # split lab into individual channel space for color space conversion
+    # split lab into individual channel space for colour space conversion
     l, a, b = cv2.split(image_lab)
 
     # convert lab space to LMS space
@@ -113,5 +113,5 @@ def cx_lab2rgb(image_lab, power10):
     g = L * lms2rgb_eq[1][0] + M * lms2rgb_eq[1][1] + S * lms2rgb_eq[1][2]
     b = M * lms2rgb_eq[2][0] + M * lms2rgb_eq[2][1] + S * lms2rgb_eq[2][2]
 
-    # merge individual channel into RGB color space
+    # merge individual channel into RGB colour space
     return cv2.merge([r, g, b]).astype(np.float32)

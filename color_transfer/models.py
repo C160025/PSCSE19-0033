@@ -13,10 +13,10 @@ eps = np.finfo(np.float32).eps
 def MKL_CX(source_rgb, target_rgb):
     """
     [Pitie07b] Pitie et al. The linear Monge-Kantorovitch linear colour mapping for example-based colour transfer. CVMP07.
-    Probability Density Function (PDF) Monge-Kantorovitch linear (MKL) Color transfer (CX)
-    :param source_rgb: source image in RGB color space (0-255) on numpy array
-    :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: output_rgb: corrected image in RGB color space (0-255) on numpy array
+    Probability Density Function (PDF) Monge-Kantorovitch linear (MKL) Colour transfer (CX)
+    :param source_rgb: source image in RGB colour space (0-255) on numpy array
+    :param target_rgb: target image in RGB colour space (0-255) on numpy array
+    :return: output_rgb: corrected image in RGB colour space (0-255) on numpy array
     """
     if source_rgb.ndim != 3 and target_rgb.ndim != 3:
         print('pictures must have 3 dimensions')
@@ -56,25 +56,25 @@ def REGRAIN_CX(source_rgb, target_rgb):
     idt_rgb = IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1)
     return regrain_cx(source_rgb, idt_rgb)
 
-def regrain_cx(source_rgb, target_rgb):
+def regrain_cx(source_rgb, idt_rgb):
     """
     https://github.com/pengbo-learn/python-color-transfer/blob/master/python_color_transfer/color_transfer.py
     :param source_rgb:
-    :param target_rgb:
+    :param idt_rgb:
     :return:
     """
     source = source_rgb / 255.
-    target = target_rgb / 255.
+    idt = idt_rgb / 255.
 
-    source_regrain = np.zeros_like(source_rgb)
-    output = regrain_rec(source_regrain, source, target, n_bits=np.array([4, 16, 32, 64, 64, 64]), smoothness=1, level=0)
+    source_zero = np.zeros_like(source_rgb)
+    output = regrain_rec(source_zero, source, idt, n_bits=np.array([4, 16, 32, 64, 64, 64]), smoothness=1, level=0)
     return (output * 255.).astype(np.uint8)
 
-def solve(source_regrain, source, target, n_bits, smoothness, level):
+def solve(result, source, idt, n_bits, smoothness, level):
     """
-    :param source_regrain:
+    :param result:
     :param source:
-    :param target:
+    :param idt:
     :param n_bits:
     :param smoothness:
     :param level:
@@ -93,10 +93,12 @@ def solve(source_regrain, source, target, n_bits, smoothness, level):
     dI = np.sqrt(np.sum((np.add(gx**2, gy**2)), axis=2))
 
     h = 2 ** (-level)
+    # equation 14 account for the possible stretching of the transformation t
     psi = (256. * dI / 5.).clip(None, 1)
-
+    # equation 12 emphasise flat areas remain flats
     phi = 30. / (1 + 10 * dI / max(smoothness, eps)) * h
 
+    # equation 19
     p1 = lambda arr: np.concatenate((arr[:, 1:], arr[:, -1:]), axis=1)
     p2 = lambda arr: np.concatenate((arr[1:, :], arr[-1:, :]), axis=0)
     p3 = lambda arr: np.concatenate((arr[:, :1], arr[:, :-1]), axis=1)
@@ -108,22 +110,23 @@ def solve(source_regrain, source, target, n_bits, smoothness, level):
     phi4 = (p4(phi) + phi) / 2
 
     rho = 1/5
+    # equation 18
     for i in range(n_bits):
         den = psi + phi1 + phi2 + phi3 + phi4
-        num = (np.repeat(psi[:, :, np.newaxis], k, axis=2) * target
-               + np.repeat(phi1[:, :, np.newaxis], k, axis=2) * (p1(source_regrain) - p1(source) + source)
-               + np.repeat(phi2[:, :, np.newaxis], k, axis=2) * (p2(source_regrain) - p2(source) + source)
-               + np.repeat(phi3[:, :, np.newaxis], k, axis=2) * (p3(source_regrain) - p3(source) + source)
-               + np.repeat(phi4[:, :, np.newaxis], k, axis=2) * (p4(source_regrain) - p4(source) + source))
-        source_regrain = num / np.repeat(den[:, :, np.newaxis], k, axis=2) * (1 - rho) + rho * source_regrain
+        num = (np.repeat(psi[:, :, np.newaxis], k, axis=2) * idt
+               + np.repeat(phi1[:, :, np.newaxis], k, axis=2) * (p1(result) - p1(source) + source)
+               + np.repeat(phi2[:, :, np.newaxis], k, axis=2) * (p2(result) - p2(source) + source)
+               + np.repeat(phi3[:, :, np.newaxis], k, axis=2) * (p3(result) - p3(source) + source)
+               + np.repeat(phi4[:, :, np.newaxis], k, axis=2) * (p4(result) - p4(source) + source))
+        result = num / np.repeat(den[:, :, np.newaxis], k, axis=2) * (1 - rho) + rho * result
 
-    return source_regrain
+    return result
 
-def regrain_rec(source_regrain, source, target, n_bits, smoothness, level):
+def regrain_rec(source_zero, source, idt, n_bits, smoothness, level):
     """
-    :param source_regrain:
+    :param source_zero:
     :param source:
-    :param target:
+    :param idt:
     :param n_bits:
     :param smoothness:
     :param level:
@@ -136,17 +139,17 @@ def regrain_rec(source_regrain, source, target, n_bits, smoothness, level):
 
     if len(n_bits) > 1 and vres2 > 20 and hres2 > 20:
         source_resize = cv2.resize(source, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
-        target_resize = cv2.resize(target, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
-        source_regrain_resize = cv2.resize(source_regrain, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
-        source_regrain_resize = regrain_rec(source_regrain_resize, source_resize, target_resize, n_bits[1:], smoothness, level=level+1)
-        source_regrain = cv2.resize(source_regrain_resize, (hres, vres), interpolation=cv2.INTER_LINEAR)
+        idt_resize = cv2.resize(idt, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
+        source_zero_resize = cv2.resize(source_zero, (hres2, vres2), interpolation=cv2.INTER_LINEAR)
+        source_zero_resize = regrain_rec(source_zero_resize, source_resize, idt_resize, n_bits[1:], smoothness, level=level+1)
+        result = cv2.resize(source_zero_resize, (hres, vres), interpolation=cv2.INTER_LINEAR)
 
-    return solve(source_regrain, source, target, n_bits[0], smoothness, level)
+    return solve(result, source, idt, n_bits[0], smoothness, level)
 
 # F. Pitie 2005 N-Dimensional PDF Transfer Iterative Distribution Transfer
 def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
     """
-    Probability Density Function (PDF) Iterative Distribution Transfer (IDT) Color transfer (CX)
+    Probability Density Function (PDF) Iterative Distribution Transfer (IDT) Colour transfer (CX)
     [Pitie05a] Pitie et al. N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer.
     [Pitie05b] Pitie et al. Towards Automated Colour Grading. CVMP05.
     [Pitie07a] Pitie et al. Automated colour grading using colour distribution transfer. CVIU. 2007.
@@ -178,6 +181,8 @@ def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
 
 def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation):
     """
+    Referencing from paper N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer by Pitie et al.
+    http://www.tara.tcd.ie/bitstream/handle/2262/19800/01544887.pdf;jsessionid=BAA0F9E36D5AE03760B4F6B9BEF40057?sequence=1
     :param source_reshape:
     :param target_reshape:
     :param bins:
@@ -192,7 +197,7 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
     first_rotation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [2 / 3, 2 / 3, -1 / 3], [2 / 3, -1 / 3, 2 / 3], [-1 / 3, 2 / 3, 2 / 3]])
     for i in range(nb_iterations):
 
-        #  create a random orthonormal matrix
+        #  generate random orthonormal rotation matrix
         orthonormal_matrix = special_ortho_group.rvs(n_dim).astype(np.float32)
         rotation = first_rotation @ orthonormal_matrix if i > 0 else first_rotation
 
@@ -208,14 +213,16 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
             data_min = min(source_rotation[j].min(), target_rotation[j].min()) - eps
             data_max = max(source_rotation[j].max(), target_rotation[j].max()) + eps
 
-            # get the projections
+            # projection the source and target along the axis
             source_projections, edges = np.histogram(source_rotation[j], bins=bins - 1, range=[data_min, data_max])
             target_projections, _ = np.histogram(target_rotation[j], bins=bins - 1, range=[data_min, data_max])
 
+            # transport map on 1-Dimensional PDF Transfer
             f = one_d_pdf_transfer(source_projections, target_projections, edges)
 
             # apply the mapping
             source_rotation_[j] = np.interp(source_rotation[j], edges[1:], f.T, left=0, right=bins - 1)
+
 
         source = relaxation * np.linalg.pinv(rotation) @ (source_rotation_ - source_rotation) + source
 
@@ -223,17 +230,20 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
 
 def one_d_pdf_transfer(source_projections, target_projections, edges):
     """
-    discretization as histogram
-    :param source_rotation:
-    :param target_rotation:
+    transport map on 1-Dimensional PDF Transfer small damping term that facilitate the inversion
+    Referencing from paper N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer by Pitie et al.
+    http://www.tara.tcd.ie/bitstream/handle/2262/19800/01544887.pdf;jsessionid=BAA0F9E36D5AE03760B4F6B9BEF40057?sequence=1
+    :param source_projections:
+    :param target_projections:
     :return:
     """
     eps_6 = 1e-6
 
-    # get the transport map on 1-Dimensional PDF Transfer small damping term that facilitate the inversion
+    # cumulative pdf of source
     source_cum_projections = (source_projections + eps_6).cumsum()
     source_damp = source_cum_projections / source_cum_projections[-1]
 
+    # cumulative pdf of target
     target_cum_projections = (target_projections + eps_6).cumsum()
     target_damp = target_cum_projections / target_cum_projections[-1]
 
@@ -245,13 +255,13 @@ def Mean_CX(source_rgb, target_rgb, conversion):
     compute using mean and standard deviation
     referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
     http://erikreinhard.com/papers/colourtransfer.pdf
-    :param source: source image in RGB color space (0-255) on numpy array
-    :param target: target image in RGB color space (0-255) on numpy array
-    :param conversion: two type color space conversions
+    :param source: source image in RGB colour space (0-255) on numpy array
+    :param target: target image in RGB colour space (0-255) on numpy array
+    :param conversion: two type colour space conversions
                        'opencv' = opencv-python package
                        'matrix' = equation referencing from Color Transfer between Images by Erik Reinhard's paper
                              http://erikreinhard.com/papers/colourtransfer.pdf
-    :return: output image in RGB color space (0-255) on numpy array
+    :return: output image in RGB colour space (0-255) on numpy array
     """
     if source_rgb.ndim != 3 and target_rgb.ndim != 3:
         print('pictures must have 3 dimensions')
@@ -262,53 +272,58 @@ def Mean_CX(source_rgb, target_rgb, conversion):
 
 def opencv_mean_cx(source_rgb, target_rgb):
     """
-    Color transfer (CX) from target image's color characteristics into source image,
-    using opencv-python package to convert between color space.
-    :param source_rgb: source image in RGB color space (0-255) on numpy array
-    :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: corrected image in RGB color space (0-255) on numpy array
+    Colour transfer (CX) from target image's colour characteristics into source image,
+    using opencv-python package to convert between colour space.
+    :param source_rgb: source image in RGB colour space (0-255) on numpy array
+    :param target_rgb: target image in RGB colour space (0-255) on numpy array
+    :return: corrected image in RGB colour space (0-255) on numpy array
     """
-    # convert from RGB to LAB color space for source and target
+    # convert from RGB to LAB colour space for source and target
     source_lab = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2LAB).astype(np.float)
     target_lab = cv2.cvtColor(target_rgb, cv2.COLOR_RGB2LAB).astype(np.float)
 
-    # statistics and color correction
-    correction = color_correction(source_lab, target_lab, True)
+    # statistics and u correction
+    correction = colour_correction(source_lab, target_lab, True)
+    #correction = colour_correction(source_rgb, target_rgb, True)
 
-    # convert from LAB to RGB color space
+    # convert from LAB to RGB colour space
     return cv2.cvtColor(correction.astype(np.uint8), cv2.COLOR_LAB2RGB)
+    # return correction.astype(np.uint8)
 
 def matrix_mean_cx(source_rgb, target_rgb):
     """
-    Color transfer (CX) from target image's color characteristics into source image,
+    Colour transfer (CX) from target image's colour characteristics into source image,
     Referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
-    http://erikreinhard.com/papers/colourtransfer.pdf paper
-    :param source_rgb: source image in RGB color space (0-255) on numpy array
-    :param target_rgb: target image in RGB color space (0-255) on numpy array
-    :return: corrected image in RGB color space (0-255) on numpy array
+    http://erikreinhard.com/papers/colourtransfer.pdf
+    :param source_rgb: source image in RGB colour space (0-255) on numpy array
+    :param target_rgb: target image in RGB colour space (0-255) on numpy array
+    :return: corrected image in RGB colour space (0-255) on numpy array
     """
-    # convert from RGB to LAB color space for source and target
+    # convert from RGB to LAB colour space for source and target
     source_lab = cx_rgb2lab(source_rgb, True)
     target_lab = cx_rgb2lab(target_rgb, True)
 
-    # statistics and color correction
-    correction = color_correction(source_lab, target_lab)
+    # statistics and colour correction
+    correction = colour_correction(source_lab, target_lab)
+    # correction = colour_correction(source_rgb, target_rgb)
 
-    # convert from LAB to RGB color space
+    # convert from LAB to RGB colour space
     return cx_lab2rgb(correction, True)
+    # return correction.astype(np.uint8)
 
 # Erik Reinhard 2001 Color Transfer between Images
-def color_correction(source_lab, target_lab, clip='False'):
+def colour_correction(source_lab, target_lab, clip='False'):
     """
-    Color correction is to compute mean and standard deviation for each axis
-    individually in the lab color space.
-    Referencing from http://erikreinhard.com/papers/colourtransfer.pdf paper
-    :param source_lab: source image in lab color space on numpy array
-    :param target_lab: target image in lab color space on numpy array
+    Colour correction is to compute mean and standard deviation for each axis
+    individually in the lab colour space.
+    Referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
+    http://erikreinhard.com/papers/colourtransfer.pdf
+    :param source_lab: source image in lab colour space on numpy array
+    :param target_lab: target image in lab colour space on numpy array
     :param clip: limit the data points range (0-255) for opencv-python conversion lab to RGB
-    :return: corrected image in lab color space on numpy array
+    :return: corrected image in lab colour space on numpy array
     """
-    # split into individual channel space for statistics and color correction
+    # split into individual channel space for statistics and colour correction
     (source_l, source_a, source_b) = cv2.split(source_lab)
     (target_l, target_a, target_b) = cv2.split(target_lab)
 
@@ -333,5 +348,5 @@ def color_correction(source_lab, target_lab, clip='False'):
         a = np.clip(a, 0, 255)
         b = np.clip(b, 0, 255)
 
-    # merge individual channel back into lab color space
+    # merge individual channel back into lab colour space
     return cv2.merge([l, a, b])
