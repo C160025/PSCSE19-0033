@@ -24,7 +24,6 @@ def ColourXfer(source_rgb, target_rgb, model, conversion=None):
                   https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cvmp.pdf
     :return: output_rgb: corrected image in RGB colour space (0-255) on numpy array uint8
     """
-
     if model == 'mean':
         return Mean_CX(source_rgb, target_rgb, conversion)
     if model == 'idt':
