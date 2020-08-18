@@ -3,38 +3,37 @@ import numpy as np
 from scipy.stats import special_ortho_group
 from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 
+#
 eps = np.finfo(np.float32).eps
 
-# The linear Monge-Kantorovitch linear colour mapping for
-# example-based colour transfer. F. Pitié and A. Kokaram (2007) In 4th
-# IEE European Conference on Visual Media Production (CVMP'07). London,
-# November.
-
+# F. Pitie 2007 Monge-Kantorovitch linear Colour transfer
 def MKL_CX(source_rgb, target_rgb):
     """
-    [Pitie07b] Pitie et al. The linear Monge-Kantorovitch linear colour mapping for example-based colour transfer. CVMP07.
-    Probability Density Function (PDF) Monge-Kantorovitch linear (MKL) Colour transfer (CX)
-    :param source_rgb: source image in RGB colour space (0-255) on numpy array
-    :param target_rgb: target image in RGB colour space (0-255) on numpy array
-    :return: output_rgb: corrected image in RGB colour space (0-255) on numpy array
+    Monge-Kantorovitch linear (MKL) Colour transfer (CX)
+    [Pitie07b] Pitie et al. 2007 The linear Monge-Kantorovitch linear colour mapping for example-based colour transfer
+    :param source_rgb: source in RGB on numpy array
+    :param target_rgb: target in RGB on numpy array
+    :return: output in RGB colour space on numpy array
     """
     if source_rgb.ndim != 3 and target_rgb.ndim != 3:
         print('pictures must have 3 dimensions')
-    vres, hres, dim = source_rgb.shape
-    source = (source_rgb / 255.).reshape(-1, dim)
-    target = (target_rgb / 255.).reshape(-1, dim)
+    _, _, ch = source_rgb.shape
+    source = (source_rgb / 255.).reshape(-1, ch)
+    target = (target_rgb / 255.).reshape(-1, ch)
 
+    # estimate the covariance matrix
     source_cov = np.cov(source.T)
     target_cov = np.cov(target.T)
 
-    t = mkl(source_cov, target_cov)
+    transfer = mkl(source_cov, target_cov)
 
-    mx0 = np.mean(source, axis=0)
-    mx1 = np.mean(target, axis=0)
+    source_mean = np.mean(source, axis=0)
+    target_mean = np.mean(target, axis=0)
 
-    xr = (source - mx0) @ t + mx1
+    # stopped here
+    xr = (source - source_mean) @ transfer + target_mean
 
-    return np.multiply(xr.reshape(source_rgb.shape), 255).astype(np.uint8)
+    return (xr.reshape(source_rgb.shape) * 255).astype(np.uint8)
 
 def mkl(source_cov, target_cov):
 
@@ -55,9 +54,9 @@ def REGRAIN_CX(source_rgb, target_rgb):
     """
     Process Iterative Distribution Transfer (IDT) Colour transfer (CX) and follow by Regain Colour transfer (CX)
     referencing from the following papers :
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_rgb: source in RGB on numpy array
     :param target_rgb: target in RGB on numpy array
@@ -72,9 +71,9 @@ def regrain_cx(source_rgb, idt_rgb):
     """
     Regain Colour transfer (CX) on IDT result to match the gradient level to the original source image
     referencing from the following papers :
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_rgb: source in RGB on numpy array
     :param idt_rgb: IDT result in RGB on numpy array
@@ -93,25 +92,26 @@ def regrain_cx(source_rgb, idt_rgb):
 
 def regrain_recursion(source_zero, source, idt, n_bits, smoothness, level):
     """
-
+    resize images size by half using bilinear interpolation to smooth out the edges or noises
     referencing from the following papers :
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_zero: source with all zeros in RGB on numpy array
     :param source: source in RGB on numpy array
     :param idt: IDT result in RGB on numpy array
-    :param n_bits:
-    :param smoothness:
-    :param level:
-    :return:
+    :param n_bits: number of bits to control the resize
+    :param smoothness: approximate forecast to reduce the noise in the data
+    :param level: incremental recursion level
+    :return: solved result in RGB on numpy array
     """
     hgt, wdth, _ = source.shape
 
     hgt2 = int(np.ceil(hgt / 2))
-    wdth2 = int(np.ceil(hgt / 2))
+    wdth2 = int(np.ceil(wdth / 2))
 
+    # recurring resize the image size by half
     if len(n_bits) > 1 and hgt2 > 20 and wdth2 > 20:
         source_resize = cv2.resize(source, (wdth2, hgt2), interpolation=cv2.INTER_LINEAR)
         idt_resize = cv2.resize(idt, (wdth2, hgt2), interpolation=cv2.INTER_LINEAR)
@@ -119,77 +119,71 @@ def regrain_recursion(source_zero, source, idt, n_bits, smoothness, level):
         source_zero_resize = regrain_recursion(source_zero_resize, source_resize, idt_resize, n_bits[1:], smoothness, level=level+1)
         source_zero = cv2.resize(source_zero_resize, (wdth, hgt), interpolation=cv2.INTER_LINEAR)
 
+    # solve with resize image
     return solve(source_zero, source, idt, n_bits[0], smoothness, level)
 
 def solve(result, source, idt, n_bits, smoothness, level):
     """
     referencing from the following papers :
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
-    :param result: result in RGB on numpy array
+    :param result: recursion result in RGB on numpy array
     :param source: source in RGB on numpy array
     :param idt: IDT result in RGB on numpy array
-    :param n_bits:
-    :param smoothness:
-    :param level:
-    :return:
+    :param n_bits: number of bits to control the loop
+    :param smoothness: approximate forecast to reduce the noise in the data
+    :param level: incremental recursion level
+    :return: result in RGB on numpy array
     """
-    [_, _, ch] = source.shape
-
-    g = source
-
-    gx1 = np.concatenate((g[:, 1:, :], g[:, [-1], :]), axis=1)
-    gx2 = np.concatenate((g[:, [0], :], g[:, 0:-1, :]), axis=1)
-    gy1 = np.concatenate((g[1:, :, :], g[[-1], :, :]), axis=0)
-    gy2 = np.concatenate((g[[0], :, :], g[0:-1, :, :]), axis=0)
-    gx = gx1 - gx2
-    gy = gy1 - gy2
-    dI = np.sqrt(np.sum((np.add(gx**2, gy**2)), axis=2))
-
-    h = 2 ** (-level)
-    # equation 14 limit the stretching during the transformation
-    psi = (256. * dI / 5.).clip(None, 1)
-    # equation 12 limit the flat areas remain flats
-    phi = 30. / (1 + 10 * dI / max(smoothness, eps)) * h
+    _, _, ch = source.shape
 
     # construct lambda calculus function to approximate the four neighbour pixels
-    pixel1 = lambda arr: np.concatenate((arr[:, 1:], arr[:, -1:]), axis=1)
-    pixel2 = lambda arr: np.concatenate((arr[1:, :], arr[-1:, :]), axis=0)
-    pixel3 = lambda arr: np.concatenate((arr[:, :1], arr[:, :-1]), axis=1)
-    pixel4 = lambda arr: np.concatenate((arr[:1, :], arr[:-1, :]), axis=0)
+    pixel_1 = lambda arr: np.concatenate((arr[:, 1:], arr[:, -1:]), axis=1)
+    pixel_2 = lambda arr: np.concatenate((arr[1:, :], arr[-1:, :]), axis=0)
+    pixel_3 = lambda arr: np.concatenate((arr[:, :1], arr[:, :-1]), axis=1)
+    pixel_4 = lambda arr: np.concatenate((arr[:1, :], arr[:-1, :]), axis=0)
 
-    # equation 19
-    phi1 = (pixel1(phi) + phi) / 2
-    phi2 = (pixel2(phi) + phi) / 2
-    phi3 = (pixel3(phi) + phi) / 2
-    phi4 = (pixel4(phi) + phi) / 2
+    delta_x = pixel_3(idt) - pixel_1(idt)
+    delta_y = pixel_4(idt) - pixel_2(idt)
+    delta = np.sqrt(np.sum((np.add(delta_x**2, delta_y**2)), axis=2))
+
+    h = 2 ** (-level)
+    # weight field that limit the stretching during the transformation
+    psi = (256. * delta / 5.).clip(None, 1)
+    # weight field that limit the flat areas remain flats
+    phi = (30. * h) / (1 + 10 * delta / max(smoothness, eps))
+
+    phi_1 = (pixel_1(phi) + phi) / 2
+    phi_2 = (pixel_2(phi) + phi) / 2
+    phi_3 = (pixel_3(phi) + phi) / 2
+    phi_4 = (pixel_4(phi) + phi) / 2
 
     rho = 1/5
-    # equation 18
+
     for i in range(n_bits):
-        den = psi + phi1 + phi2 + phi3 + phi4
+        den = psi + phi_1 + phi_2 + phi_3 + phi_4
         num = (np.repeat(psi[:, :, np.newaxis], ch, axis=2) * idt
-               + np.repeat(phi1[:, :, np.newaxis], ch, axis=2) * (pixel1(result) - pixel1(source) + source)
-               + np.repeat(phi2[:, :, np.newaxis], ch, axis=2) * (pixel2(result) - pixel2(source) + source)
-               + np.repeat(phi3[:, :, np.newaxis], ch, axis=2) * (pixel3(result) - pixel3(source) + source)
-               + np.repeat(phi4[:, :, np.newaxis], ch, axis=2) * (pixel4(result) - pixel4(source) + source))
+               + np.repeat(phi_1[:, :, np.newaxis], ch, axis=2) * (pixel_1(result) - pixel_1(source) + source)
+               + np.repeat(phi_2[:, :, np.newaxis], ch, axis=2) * (pixel_2(result) - pixel_2(source) + source)
+               + np.repeat(phi_3[:, :, np.newaxis], ch, axis=2) * (pixel_3(result) - pixel_3(source) + source)
+               + np.repeat(phi_4[:, :, np.newaxis], ch, axis=2) * (pixel_4(result) - pixel_4(source) + source))
         result = num / np.repeat(den[:, :, np.newaxis], ch, axis=2) * (1 - rho) + rho * result
 
     return result
 
 
-# François Pitié 2005 N-Dimensional PDF Transfer Iterative Distribution Transfer
+# François Pitié 2005 N-Dimensional PDF Transfer / Iterative Distribution Transfer
 def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
     """
     Probability Density Function (PDF) or Iterative Distribution Transfer (IDT) Colour transfer (CX)
     referencing from the following papers :
-    [Pitie05a] N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer by François Pitié
+    [Pitie05a] Pitié et al. 2005 N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_rgb: source in RGB on numpy array
     :param target_rgb: target in RGB on numpy array
@@ -201,19 +195,19 @@ def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
     if source_rgb.ndim != 3 and target_rgb.ndim != 3:
         print('pictures must have 3 dimensions')
 
-    vres, hres, dim = source_rgb.shape
+    hgt, wdth, ch = source_rgb.shape
 
     # reshape images by flatten and normalized RGB array
-    source_reshape = source_rgb.T.reshape(dim, -1) / 255.
-    target_reshape = target_rgb.T.reshape(dim, -1) / 255.
+    source_reshape = source_rgb.T.reshape(ch, -1) / 255.
+    target_reshape = target_rgb.T.reshape(ch, -1) / 255.
 
     # facilitate the PDF/IDT Transfer
     source = pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation)
 
     # reshape image back by unflatten and denormalized RGB array
-    output_r = source[0, :].reshape((hres, vres)).T * 255.
-    output_g = source[1, :].reshape((hres, vres)).T * 255.
-    output_b = source[2, :].reshape((hres, vres)).T * 255.
+    output_r = source[0, :].reshape((wdth, hgt)).T * 255.
+    output_g = source[1, :].reshape((wdth, hgt)).T * 255.
+    output_b = source[2, :].reshape((wdth, hgt)).T * 255.
 
     return cv2.merge([output_r, output_g, output_b]).astype(np.uint8)
 
@@ -221,11 +215,11 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
     """
     decreases the Kullback-Leibler (KL) divergence measurement till the iterations end
     referencing from the following papers :
-    [Pitie05a] N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer by François Pitié
+    [Pitie05a] Pitié et al. 2005 N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_reshape: source in flatten RGB on numpy array
     :param target_reshape: target in flatten RGB on numpy array
@@ -235,21 +229,21 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
     :return: remapped result flatten RGB on numpy array
     """
     source = source_reshape
-    n_dim = source_reshape.shape[0]
+    hgt, _ = source_reshape.shape
 
     # initialize the fist rotation matrix
     first_rotation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1],
                                [2/3, 2/3, -1/3], [2/3, -1/3, 2/3], [-1/3, 2/3, 2/3]])
     for i in range(nb_iterations):
         #  generate random orthogonal rotation matrix
-        orthogonal_matrix = special_ortho_group.rvs(n_dim).astype(np.float32)
+        orthogonal_matrix = special_ortho_group.rvs(hgt).astype(np.float32)
         rotation = first_rotation @ orthogonal_matrix if i > 0 else first_rotation
 
         # apply rotation to change the coordinate
         source_rotation = rotation @ source
         target_rotation = rotation @ target_reshape
         source_rotation_ = np.empty_like(source_rotation)
-        nb_projections = rotation.shape[0]
+        nb_projections, _ = rotation.shape
 
         # get the marginals, match them, and apply transformation
         for j in range(nb_projections):
@@ -278,11 +272,11 @@ def one_d_pdf_transfer(source_projections, target_projections, edges):
     """
     transport map on 1-Dimensional PDF Transfer small damping term that facilitate the inversion
     referencing from the following papers :
-    [Pitie05a] N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer by François Pitié
+    [Pitie05a] Pitié et al. 2005 N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
-    [Pitie05b] Towards Automated Colour Grading by François Pitié
+    [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-    [Pitie07a] Automated colour grading using colour distribution transfer by François Pitié
+    [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
     https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_projections: source histogram data
     :param target_projections: target histogram data
@@ -303,10 +297,11 @@ def one_d_pdf_transfer(source_projections, target_projections, edges):
     # 1-D linear interpolation for discrete data points
     return np.interp(source_damp, target_damp, edges[1:])
 
+# Erik Reinhard 2001 Color Transfer between Images
 def Mean_CX(source_rgb, target_rgb, conversion):
     """
     compute using mean and standard deviation
-    referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
+    referencing from Reinhard et al. 2001 Color Transfer between Images
     http://erikreinhard.com/papers/colourtransfer.pdf
     :param source: source in RGB colour space (0-255) on numpy array
     :param target: target in RGB colour space (0-255) on numpy array
@@ -344,7 +339,7 @@ def opencv_mean_cx(source_rgb, target_rgb):
 def matrix_mean_cx(source_rgb, target_rgb):
     """
     Colour transfer (CX) from target image's colour characteristics into source image,
-    Referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
+    referencing from Reinhard et al. 2001 Color Transfer between Images
     http://erikreinhard.com/papers/colourtransfer.pdf
     :param source_rgb: source in RGB colour space (0-255) on numpy array
     :param target_rgb: target in RGB colour space (0-255) on numpy array
@@ -360,28 +355,27 @@ def matrix_mean_cx(source_rgb, target_rgb):
     # convert from LAB to RGB colour space
     return cx_lab2rgb(correction, True)
 
-# Erik Reinhard 2001 Color Transfer between Images
 def colour_correction(source_lab, target_lab, clip='False'):
     """
-    Colour correction is to compute mean and standard deviation for each axis
-    individually in the lab colour space.
-    Referencing from Color Transfer between Images 2001 by Erik Reinhard's paper
+    Colour correction is to compute mean and standard deviation,
+    individually in for each axis under lab colour space.
+    referencing from Reinhard et al. 2001 Color Transfer between Images
     http://erikreinhard.com/papers/colourtransfer.pdf
     :param source_lab: source in lab colour space on numpy array
     :param target_lab: target in lab colour space on numpy array
     :param clip: limit the data points range (0-255) for opencv-python conversion lab to RGB
     :return: corrected image in lab colour space on numpy array
     """
-    # split into individual channel space for statistics and colour correction
+    # split into individual channel space for statistics and colour correction to optimize the computation time
     (source_l, source_a, source_b) = cv2.split(source_lab)
     (target_l, target_a, target_b) = cv2.split(target_lab)
 
-    # equation 10/2.4 subtract source mean from the source data points
+    # equation 10 (FYP equation 2.4) subtract source mean from the source data points
     l = source_l - source_l.mean()
     a = source_a - source_a.mean()
     b = source_b - source_b.mean()
 
-    # equation 11/2.5 scale down by factoring the respective standard deviation
+    # equation 11 (FYP equation 2.5) scale down by factoring the respective standard deviation
     l = (target_l.std() / source_l.std()) * l
     a = (target_a.std() / source_a.std()) * a
     b = (target_b.std() / source_b.std()) * b
