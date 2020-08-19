@@ -14,7 +14,7 @@ def ColourXfer(source_rgb, target_rgb, model, conversion=None):
     :param model: two type conversion models
                   'mean' = mean and standard deviation transfer referencing from Reinhard et al. 2001 Color Transfer between Images
                            http://erikreinhard.com/papers/colourtransfer.pdf
-                  'idt' = probability density function transfer referencing from [Pitie05a], [Pitie05b] and [Pitie07a]
+                  'idt' = probability density function or iterative distribution transfer transfer referencing from [Pitie05a], [Pitie05b] and [Pitie07a]
                   'regrain' = regain colour transfer on IDT result referencing from [Pitie05b] and [Pitie07a]
                   [Pitie05a] Pitié et al. 2005 N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer
                   https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
