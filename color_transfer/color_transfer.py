@@ -4,6 +4,7 @@ def ColourXfer(source_rgb, target_rgb, model, conversion=None):
     """
     Colour transfer from target image's colour characteristics into source image,
     by the selection colour space conversion model.
+    numpy cv2 scipy
     :param source_rgb: source image in RGB colour space (0-255) on numpy array uint8
     :param target_rgb: target image in RGB colour space (0-255) on numpy array uint8
     :param conversion: two type colour space conversions

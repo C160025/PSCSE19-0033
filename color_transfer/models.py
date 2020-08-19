@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import special_ortho_group
 from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 
-# machine epsilon
+# machine epsilon for floating point arithmetic
 eps = np.finfo(np.float32).eps
 
 # F. Pitie 2007 Monge-Kantorovitch linear Colour transfer
@@ -18,6 +18,8 @@ def MKL_CX(source_rgb, target_rgb):
     if source_rgb.ndim != 3 and target_rgb.ndim != 3:
         print('pictures must have 3 dimensions')
     _, _, ch = source_rgb.shape
+
+    # flatten and normalized RGB array
     source = (source_rgb / 255.).reshape(-1, ch)
     target = (target_rgb / 255.).reshape(-1, ch)
 
@@ -33,10 +35,16 @@ def MKL_CX(source_rgb, target_rgb):
 
     result = (source - source_mean) @ transfer + target_mean
 
+    # unflatten and denormalized RGB array
     return (result.reshape(source_rgb.shape) * 255).astype(np.uint8)
 
 def mkl(source_cov, target_cov):
-
+    """
+    Monge-Kantorovitch linear transfer the source to colour map target
+    :param source_cov: flatten source covariance in RGB on numpy array
+    :param target_cov: flatten target covariance in RGB on numpy array
+    :return: flatten result in RGB on numpy array
+    """
     # compute eigenvalues and eigenvectors of source covariance
     source_eigval, source_eigvec = np.linalg.eig(source_cov)
     # extract diagonal matrix from source eigenvalues
@@ -49,7 +57,7 @@ def mkl(source_cov, target_cov):
     convex_eigval, convex_eigvec = np.linalg.eig(continuous)
     # extract diagonal matrix from continuous eigenvalues
     continuous_diag = np.diag(np.sqrt(convex_eigval.clip(eps, None)))
-
+    # inverse the source diagonal matrix
     source_diag_inv = np.diag(1. / (np.diag(source_diag)))
 
     return source_eigvec @ source_diag_inv @ convex_eigvec @ continuous_diag @ convex_eigvec.T @ source_diag_inv @ source_eigvec.T

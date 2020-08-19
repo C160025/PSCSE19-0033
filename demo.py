@@ -1,16 +1,5 @@
-import numpy as np
-import random
-import scipy.optimize
-from pprint import pprint
-import scipy
-import scipy.linalg
 import cv2
-import math
-import time
 from color_transfer.color_transfer import ColourXfer
-from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
-import matplotlib.pyplot as plt
-import pandas as pd
 
 source_path = "images/source1.png"
 target_path = "images/target1.png"
@@ -30,16 +19,16 @@ transfer_path8 = "images/scotland_house_scotland_mkl.png"
 
 
 # 1) testing on mean opencv and matrix on source1 and traget1 result on matrix match on paper
-# source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
-# source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
-# target_bgr = cv2.imread(target_path, cv2.IMREAD_COLOR)
-# target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
-# transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
-# transfer_rgb1 = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matrix')
-# transfer_bgr = cv2.cvtColor(transfer_rgb, cv2.COLOR_RGB2BGR)
-# transfer_bgr1 = cv2.cvtColor(transfer_rgb1, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path, transfer_bgr)
-# cv2.imwrite(transfer_path1, transfer_bgr1)
+source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
+source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
+target_bgr = cv2.imread(target_path, cv2.IMREAD_COLOR)
+target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
+transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
+transfer_rgb1 = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matrix')
+transfer_bgr = cv2.cvtColor(transfer_rgb, cv2.COLOR_RGB2BGR)
+transfer_bgr1 = cv2.cvtColor(transfer_rgb1, cv2.COLOR_RGB2BGR)
+cv2.imwrite(transfer_path, transfer_bgr)
+cv2.imwrite(transfer_path1, transfer_bgr1)
 
 # 2) testing on mean opencv and matrix on source2 and traget2 result on matrix match on paper
 # source_bgr1 = cv2.imread(source_path1, cv2.IMREAD_COLOR)
@@ -84,13 +73,13 @@ transfer_path8 = "images/scotland_house_scotland_mkl.png"
 # cv2.imwrite(transfer_path7, transfer_bgr7)
 
 # 6) testing on mkl matlab (F. Pitié) and recode on scotland_house and scotland_plain
-source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-transfer_rgb8 = ColourXfer(source_rgb2, target_rgb2, model='mkl')
-transfer_bgr8 = cv2.cvtColor(transfer_rgb8, cv2.COLOR_RGB2BGR)
-cv2.imwrite(transfer_path8, transfer_bgr8)
+# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
+# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
+# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
+# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
+# transfer_rgb8 = ColourXfer(source_rgb2, target_rgb2, model='mkl')
+# transfer_bgr8 = cv2.cvtColor(transfer_rgb8, cv2.COLOR_RGB2BGR)
+# cv2.imwrite(transfer_path8, transfer_bgr8)
 
 
 # ************* time took ******************

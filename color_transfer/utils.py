@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import cv2
 
@@ -31,9 +30,9 @@ def cx_rgb2lab(image_rgb, log10):
                    [0.0241, 0.1288, 0.8444]]
 
     # left of equation 6 (FYP equation 2.3) to convert LMS space to lab space
-    lms2lab_eq1 = [[1 / math.sqrt(3), 0.0000, 0.0000],
-                   [0.0000, 1 / math.sqrt(6), 0.0000],
-                   [0.0000, 0.0000, 1 / math.sqrt(2)]]
+    lms2lab_eq1 = [[1 / np.sqrt(3), 0.0000, 0.0000],
+                   [0.0000, 1 / np.sqrt(6), 0.0000],
+                   [0.0000, 0.0000, 1 / np.sqrt(2)]]
 
     # right of equation 6 (FYP equation 2.3) to convert LMS space to lab space
     lms2lab_eq2 = [[1.0000, 1.0000, 1.0000],
@@ -84,9 +83,9 @@ def cx_lab2rgb(image_lab, power10):
                    [1.0000, -2.0000, 0.0000]]
 
     # right of equation 8 (FYP equation 2.6) to convert lab space to LMS space
-    lab2lms_eq2 = [[math.sqrt(3)/3, 0.0000, 0.0000],
-                   [0.0000, math.sqrt(6)/6, 0.0000],
-                   [0.0000, 0.0000, math.sqrt(2)/2]]
+    lab2lms_eq2 = [[np.sqrt(3)/3, 0.0000, 0.0000],
+                   [0.0000, np.sqrt(6)/6, 0.0000],
+                   [0.0000, 0.0000, np.sqrt(2)/2]]
 
     # dot product of equation 8 (FYP equation 2.6) to convert lab space to LMS space
     lab2lms_eq = np.matmul(lab2lms_eq1, lab2lms_eq2)
