@@ -1,11 +1,6 @@
 # Color Transfer between Images (PSCSE19-0033)
-Color Transfer Between Images 
-
-### Way of approach the FYP
-- built an open source similar like [VGGface](https://github.com/rcmalli/keras-vggface) 
-- explore other [opencv](https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_tutorials.html) library for converting between color space with D65 color temperature.
-- must install all the necessary library within setup.py
-- [color transfer](https://github.com/jrosebr1/color_transfer) github reference 
+Color Transfer Between Images uses statistical analysis approach to colour correct the source image
+by applying the applicable colour from target image to match the look and feel   
 
 ~~~bash
 # Most Recent One (Suggested)
@@ -14,10 +9,23 @@ pip install git+https://github.com/C160025/PSCSE19-0033
 pip install color_transfer
 ~~~
 
+### Library Versions
+- numpy >= 1.18.3
+- scipy >= 1.4.1
+- opencv-python >= 4.2.0.34
+
+### Example Usage
 #### Available Models
 ```python
+
 import cv2
 from color_transfer.color_transfer import ColourXfer
+
+# source and target must be in RGB on numpy array (height, width, channel)
+source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
+source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
+target_bgr = cv2.imread(target_path, cv2.IMREAD_COLOR)
+target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
 
 # mean and standard deviation transfer
 transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
@@ -27,17 +35,16 @@ transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matr
 transfer_rgb = ColourXfer(source_rgb, target_rgb, model='idt')
 
 # regain colour transfer
-transfer_rgb7 = ColourXfer(source_rgb, target_rgb, model='regrain')
+transfer_rgb = ColourXfer(source_rgb, target_rgb, model='regrain')
 
 # monge-kantorovitch linear transfer (mkl)
-transfer_rgb8 = ColourXfer(source_rgb, target_rgb, model='mkl')
+transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mkl')
+
+# all transferred results will be in RGB on numpy array (height, width, channel)
+transfer_bgr = cv2.cvtColor(transfer_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(transfer_path, transfer_bgr)
 
 ```
-
-### Library Versions
-- numpy>=1.18.3
-- scipy>=1.4.1
-- opencv-python>=4.2.0.34
 
 ### References
 - [Reinhard et al. 2001 Color Transfer between Images paper](http://erikreinhard.com/papers/colourtransfer.pdf)
