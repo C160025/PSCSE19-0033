@@ -7,4 +7,4 @@ def pretty_versions():
     n_version = numpy.__version__
     c_version = cv2.__version__
     s_version = scipy.__version__
-    return "color-transfer : {}, numpy : {} , opencv-python : {} , scipy : {}".format(__version__, n_version, c_version, s_version)
+    return "color_transfer : {}, numpy : {} , opencv-python : {} , scipy : {}".format(__version__, n_version, c_version, s_version)

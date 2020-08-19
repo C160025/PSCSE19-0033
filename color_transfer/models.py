@@ -11,6 +11,7 @@ def MKL_CX(source_rgb, target_rgb):
     """
     Monge-Kantorovitch linear (MKL) Colour transfer (CX)
     [Pitie07b] Pitie et al. 2007 The linear Monge-Kantorovitch linear colour mapping for example-based colour transfer
+    https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cvmp.pdf
     :param source_rgb: source in RGB on numpy array
     :param target_rgb: target in RGB on numpy array
     :return: output in RGB colour space on numpy array
