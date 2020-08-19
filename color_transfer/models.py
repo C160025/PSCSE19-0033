@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import special_ortho_group
 from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
 
-#
+# machine epsilon
 eps = np.finfo(np.float32).eps
 
 # F. Pitie 2007 Monge-Kantorovitch linear Colour transfer
@@ -21,33 +21,38 @@ def MKL_CX(source_rgb, target_rgb):
     source = (source_rgb / 255.).reshape(-1, ch)
     target = (target_rgb / 255.).reshape(-1, ch)
 
-    # estimate the covariance matrix
+    # estimate the covariance
     source_cov = np.cov(source.T)
     target_cov = np.cov(target.T)
 
+    # transfer the colour mapping with Monge-Kantorovitch linear
     transfer = mkl(source_cov, target_cov)
 
     source_mean = np.mean(source, axis=0)
     target_mean = np.mean(target, axis=0)
 
-    # stopped here
-    xr = (source - source_mean) @ transfer + target_mean
+    result = (source - source_mean) @ transfer + target_mean
 
-    return (xr.reshape(source_rgb.shape) * 255).astype(np.uint8)
+    return (result.reshape(source_rgb.shape) * 255).astype(np.uint8)
 
 def mkl(source_cov, target_cov):
 
-    da2, ua = np.linalg.eig(source_cov)
-    da = np.diag(np.sqrt(da2.clip(eps, None)))
+    # compute eigenvalues and eigenvectors of source covariance
+    source_eigval, source_eigvec = np.linalg.eig(source_cov)
+    # extract diagonal matrix from source eigenvalues
+    source_diag = np.diag(np.sqrt(source_eigval.clip(eps, None)))
 
-    c = da @ ua.T @ target_cov @ ua @ da
+    # continuous pdf mapping to match the target covariance
+    continuous = source_diag @ source_eigvec.T @ target_cov @ source_eigvec @ source_diag
 
-    dc2, uc = np.linalg.eig(c)
-    dc = np.diag(np.sqrt(dc2.clip(eps, None)))
+    # compute eigenvalues and eigenvectors of c
+    convex_eigval, convex_eigvec = np.linalg.eig(continuous)
+    # extract diagonal matrix from continuous eigenvalues
+    continuous_diag = np.diag(np.sqrt(convex_eigval.clip(eps, None)))
 
-    da_inv = np.diag(1. / (np.diag(da)))
+    source_diag_inv = np.diag(1. / (np.diag(source_diag)))
 
-    return ua @ da_inv @ uc @ dc @ uc.T @ da_inv @ ua.T
+    return source_eigvec @ source_diag_inv @ convex_eigvec @ continuous_diag @ convex_eigvec.T @ source_diag_inv @ source_eigvec.T
 
 # F. Pitie 2007 Regain Colour Transfer to Reduce Gain Noise Artefacts
 def REGRAIN_CX(source_rgb, target_rgb):
