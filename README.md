@@ -13,6 +13,7 @@ pip install color_transfer
 - numpy >= 1.18.3
 - scipy >= 1.4.1
 - opencv-python >= 4.2.0.34
+- matplotlib >= 3.2.1
 
 ### Example Usage
 #### Available Models
