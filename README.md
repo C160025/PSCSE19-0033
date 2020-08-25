@@ -23,27 +23,27 @@ import cv2
 from color_transfer.color_transfer import ColourXfer
 
 # source and target must be in RGB on numpy array (height, width, channel)
-source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
+source_bgr = cv2.imread("images/source.png", cv2.IMREAD_COLOR)
 source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
-target_bgr = cv2.imread(target_path, cv2.IMREAD_COLOR)
+target_bgr = cv2.imread("images/target.png", cv2.IMREAD_COLOR)
 target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
 
 # mean and standard deviation transfer
-transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
-transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matrix')
+mean_opencv_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
+mean_matrix_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matrix')
 
 # probability density function (pdf) or iterative distribution transfer (idt)
-transfer_rgb = ColourXfer(source_rgb, target_rgb, model='idt')
+idt_rgb = ColourXfer(source_rgb, target_rgb, model='idt')
 
 # regain colour transfer
-transfer_rgb = ColourXfer(source_rgb, target_rgb, model='regrain')
+regrain_rgb = ColourXfer(source_rgb, target_rgb, model='regrain')
 
 # monge-kantorovitch linear transfer (mkl)
-transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mkl')
+mkl_rgb = ColourXfer(source_rgb, target_rgb, model='mkl')
 
 # all transferred results will be in RGB on numpy array (height, width, channel)
-transfer_bgr = cv2.cvtColor(transfer_rgb, cv2.COLOR_RGB2BGR)
-cv2.imwrite(transfer_path, transfer_bgr)
+mkl_bgr = cv2.cvtColor(mkl_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite("images/mkl.png", mkl_bgr)
 
 ```
 
