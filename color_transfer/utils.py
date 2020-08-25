@@ -112,7 +112,7 @@ def cx_lab2rgb(image_lab, power10):
     # convert LMS space to RGB space
     r = L * lms2rgb_eq[0][0] + M * lms2rgb_eq[0][1] + S * lms2rgb_eq[0][2]
     g = L * lms2rgb_eq[1][0] + M * lms2rgb_eq[1][1] + S * lms2rgb_eq[1][2]
-    b = M * lms2rgb_eq[2][0] + M * lms2rgb_eq[2][1] + S * lms2rgb_eq[2][2]
+    b = L * lms2rgb_eq[2][0] + M * lms2rgb_eq[2][1] + S * lms2rgb_eq[2][2]
 
     # merge individual channel into RGB colour space
     return cv2.merge([r, g, b]).astype(np.float32)

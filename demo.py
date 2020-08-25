@@ -1,86 +1,124 @@
 import cv2
+import matplotlib.pyplot as plt
 from color_transfer.color_transfer import ColourXfer
 
-source_path = "images/source1.png"
-target_path = "images/target1.png"
-transfer_path = "images/source1_target1_opencvRGB.png"
-transfer_path1 = "images/source1_target1_matrixRGB.png"
-source_path1 = "images/source2.png"
-target_path1 = "images/target2.png"
-transfer_path2 = "images/source2_target2_opencv.png"
-transfer_path3 = "images/source2_target2_matrix.png"
-source_path2 = "images/scotland_house.png"
-target_path2 = "images/scotland_plain.png"
-transfer_path4 = "images/scotland_house_scotland_opencv.png"
-transfer_path5 = "images/scotland_house_scotland_matrix.png"
-transfer_path6 = "images/scotland_house_scotland_idt.png"
-transfer_path7 = "images/scotland_house_scotland_regrain.png"
-transfer_path8 = "images/scotland_house_scotland_mkl.png"
+# 1) mean transfer using opencv and matrix colour space conversion on fig1(a) and fig1(B)
+mean_fig1_a_path = "images/mean_fig1_a.png"
+mean_fig1_a_bgr = cv2.imread(mean_fig1_a_path, cv2.IMREAD_COLOR)
+mean_fig1_a_rgb = cv2.cvtColor(mean_fig1_a_bgr, cv2.COLOR_RGB2BGR)
+mean_fig1_b_path = "images/mean_fig1_b.png"
+mean_fig1_b_bgr = cv2.imread(mean_fig1_b_path, cv2.IMREAD_COLOR)
+mean_fig1_b_rgb = cv2.cvtColor(mean_fig1_b_bgr, cv2.COLOR_RGB2BGR)
+mean_fig1_c_opencv_path = "images/mean_fig1_c_opencv.png"
+mean_fig1_c_matrix_path = "images/mean_fig1_c_matrix.png"
+mean_fig1_c_opencv_rgb = ColourXfer(mean_fig1_a_rgb, mean_fig1_b_rgb, model='mean', conversion='opencv')
+mean_fig1_c_matrix_rgb = ColourXfer(mean_fig1_a_rgb, mean_fig1_b_rgb, model='mean', conversion='matrix')
+mean_fig1_c_opencv_bgr = cv2.cvtColor(mean_fig1_c_opencv_rgb, cv2.COLOR_RGB2BGR)
+mean_fig1_c_matrix_bgr = cv2.cvtColor(mean_fig1_c_matrix_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(mean_fig1_c_opencv_path, mean_fig1_c_opencv_bgr)
+cv2.imwrite(mean_fig1_c_matrix_path, mean_fig1_c_matrix_bgr)
+mean_fig2_a_path = "images/mean_fig2_a.png"
+mean_fig2_a_bgr = cv2.imread(mean_fig2_a_path, cv2.IMREAD_COLOR)
+mean_fig2_a_rgb = cv2.cvtColor(mean_fig2_a_bgr, cv2.COLOR_RGB2BGR)
+mean_fig2_b_path = "images/mean_fig2_b.png"
+mean_fig2_b_bgr = cv2.imread(mean_fig2_b_path, cv2.IMREAD_COLOR)
+mean_fig2_b_rgb = cv2.cvtColor(mean_fig2_b_bgr, cv2.COLOR_RGB2BGR)
+mean_fig2_c_opencv_path = "images/mean_fig2_c_opencv.png"
+mean_fig2_c_matrix_path = "images/mean_fig2_c_matrix.png"
+mean_fig2_c_opencv_rgb = ColourXfer(mean_fig2_a_rgb, mean_fig2_b_rgb, model='mean', conversion='opencv')
+mean_fig2_c_matrix_rgb = ColourXfer(mean_fig2_a_rgb, mean_fig2_b_rgb, model='mean', conversion='matrix')
+mean_fig2_c_opencv_bgr = cv2.cvtColor(mean_fig2_c_opencv_rgb, cv2.COLOR_RGB2BGR)
+mean_fig2_c_matrix_bgr = cv2.cvtColor(mean_fig2_c_matrix_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(mean_fig2_c_opencv_path, mean_fig2_c_opencv_bgr)
+cv2.imwrite(mean_fig2_c_matrix_path, mean_fig2_c_matrix_bgr)
+# plot result for figure 1
+fig, ax = plt.subplots(2, 4, figsize=(18,6))
+source_fig1 = plt.imread(mean_fig1_a_path)
+ax[0][0].imshow(source_fig1)
+ax[0][0].set_title('Source')
+target_fig1 = plt.imread(mean_fig1_b_path)
+ax[0][1].imshow(target_fig1)
+ax[0][1].set_title('Target')
+result_fig1_opencv = plt.imread(mean_fig1_c_opencv_path)
+ax[0][2].imshow(result_fig1_opencv)
+ax[0][2].set_title('OpenCV Result')
+result_fig1_matrix = plt.imread(mean_fig1_c_matrix_path)
+ax[0][3].imshow(result_fig1_matrix)
+ax[0][3].set_title('Matrix Result')
+# plot result for figure 2
+source_fig2 = plt.imread(mean_fig2_a_path)
+ax[1][0].imshow(source_fig2)
+ax[1][0].set_title('Source')
+target_fig2 = plt.imread(mean_fig2_b_path)
+ax[1][1].imshow(target_fig2)
+ax[1][1].set_title('Target')
+result_fig2_opencv = plt.imread(mean_fig2_c_opencv_path)
+ax[1][2].imshow(result_fig2_opencv)
+ax[1][2].set_title('OpenCV Result')
+result_fig2_matrix = plt.imread(mean_fig2_c_matrix_path)
+ax[1][3].imshow(result_fig2_matrix)
+ax[1][3].set_title('Matrix Result')
+plt.show()
 
+# 2) mean transfer using opencv and matrix colour space conversion on Pitié's source and Pitié's target failed on Reinhard transfer
+pitie_source_path = "images/pitie_source.png"
+pitie_source_bgr = cv2.imread(pitie_source_path, cv2.IMREAD_COLOR)
+pitie_source_rgb = cv2.cvtColor(pitie_source_bgr, cv2.COLOR_RGB2BGR)
+pitie_target_path = "images/pitie_target.png"
+pitie_target_bgr = cv2.imread(pitie_target_path, cv2.IMREAD_COLOR)
+pitie_target_rgb = cv2.cvtColor(pitie_target_bgr, cv2.COLOR_RGB2BGR)
+mean_failed_opencv_path = "images/mean_failed_opencv.png"
+mean_failed_matrix_path = "images/mean_failed_matrix.png"
+mean_failed_opencv_rgb = ColourXfer(pitie_source_rgb, pitie_target_rgb, model='mean', conversion='opencv')
+mean_failed_matrix_rgb = ColourXfer(pitie_source_rgb, pitie_target_rgb, model='mean', conversion='matrix')
+mean_failed_opencv_bgr = cv2.cvtColor(mean_failed_opencv_rgb, cv2.COLOR_RGB2BGR)
+mean_failed_matrix_bgr = cv2.cvtColor(mean_failed_matrix_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(mean_failed_opencv_path, mean_failed_opencv_bgr)
+cv2.imwrite(mean_failed_matrix_path, mean_failed_matrix_bgr)
 
-# 1) testing on mean opencv and matrix on source1 and traget1 result on matrix match on paper
-source_bgr = cv2.imread(source_path, cv2.IMREAD_COLOR)
-source_rgb = cv2.cvtColor(source_bgr, cv2.COLOR_RGB2BGR)
-target_bgr = cv2.imread(target_path, cv2.IMREAD_COLOR)
-target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
-transfer_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
-transfer_rgb1 = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matrix')
-transfer_bgr = cv2.cvtColor(transfer_rgb, cv2.COLOR_RGB2BGR)
-transfer_bgr1 = cv2.cvtColor(transfer_rgb1, cv2.COLOR_RGB2BGR)
-cv2.imwrite(transfer_path, transfer_bgr)
-cv2.imwrite(transfer_path1, transfer_bgr1)
+# 3) idt transfer on Pitié's source and Pitié's target
+pitie_idt_result_path = "images/pitie_idt_result.png"
+pitie_idt_result_rgb = ColourXfer(pitie_source_rgb, pitie_target_rgb, model='idt')
+pitie_idt_result_bgr = cv2.cvtColor(pitie_idt_result_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(pitie_idt_result_path, pitie_idt_result_bgr)
 
-# 2) testing on mean opencv and matrix on source2 and traget2 result on matrix match on paper
-# source_bgr1 = cv2.imread(source_path1, cv2.IMREAD_COLOR)
-# source_rgb1 = cv2.cvtColor(source_bgr1, cv2.COLOR_RGB2BGR)
-# target_bgr1 = cv2.imread(target_path1, cv2.IMREAD_COLOR)
-# target_rgb1 = cv2.cvtColor(target_bgr1, cv2.COLOR_RGB2BGR)
-# transfer_rgb2 = ColourXfer(source_rgb1, target_rgb1, model='mean', conversion='opencv')
-# transfer_rgb3 = ColourXfer(source_rgb1, target_rgb1, model='mean', conversion='matrix')
-# transfer_bgr2 = cv2.cvtColor(transfer_rgb2, cv2.COLOR_RGB2BGR)
-# transfer_bgr3 = cv2.cvtColor(transfer_rgb3, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path2, transfer_bgr2)
-# cv2.imwrite(transfer_path3, transfer_bgr3)
+# 4) idt + regain transfer on Pitié's source and Pitié's target
+pitie_regrain_result_path = "images/pitie_regrain_result.png"
+pitie_regrain_result_rgb = ColourXfer(pitie_source_rgb, pitie_target_rgb, model='regrain')
+pitie_regrain_result_bgr = cv2.cvtColor(pitie_regrain_result_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(pitie_regrain_result_path, pitie_regrain_result_bgr)
 
-# 3) testing on mean opencv and matrix scotland_house and scotland_plain result failed on both
-# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-# transfer_rgb4 = ColourXfer(source_rgb2, target_rgb2, model='mean', conversion='opencv')
-# transfer_rgb5 = ColourXfer(source_rgb2, target_rgb2, model='mean', conversion='matrix')
-# transfer_bgr4 = cv2.cvtColor(transfer_rgb4, cv2.COLOR_RGB2BGR)
-# transfer_bgr5 = cv2.cvtColor(transfer_rgb5, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path4, transfer_bgr4)
-# cv2.imwrite(transfer_path5, transfer_bgr5)
+# 4) mkl transfer on Pitié's source and Pitié's target
+pitie_mkl_result_path = "images/pitie_mkl_result.png"
+pitie_mkl_result_rgb = ColourXfer(pitie_source_rgb, pitie_target_rgb, model='mkl')
+pitie_mkl_result_bgr = cv2.cvtColor(pitie_mkl_result_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(pitie_mkl_result_path, pitie_mkl_result_bgr)
 
-# 4) testing on idt matlab (F. Pitié) and recode on scotland_house and scotland_plain
-# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-# transfer_rgb6 = ColourXfer(source_rgb2, target_rgb2, model='idt')
-# transfer_bgr6 = cv2.cvtColor(transfer_rgb6, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path6, transfer_bgr6)
-
-# 5) testing on idt + regrain matlab (F. Pitié) and recode on scotland_house and scotland_plain
-# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-# transfer_rgb7 = ColourXfer(source_rgb2, target_rgb2, model='regrain')
-# transfer_bgr7 = cv2.cvtColor(transfer_rgb7, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path7, transfer_bgr7)
-
-# 6) testing on mkl matlab (F. Pitié) and recode on scotland_house and scotland_plain
-# source_bgr2 = cv2.imread(source_path2, cv2.IMREAD_COLOR)
-# source_rgb2 = cv2.cvtColor(source_bgr2, cv2.COLOR_RGB2BGR)
-# target_bgr2 = cv2.imread(target_path2, cv2.IMREAD_COLOR)
-# target_rgb2 = cv2.cvtColor(target_bgr2, cv2.COLOR_RGB2BGR)
-# transfer_rgb8 = ColourXfer(source_rgb2, target_rgb2, model='mkl')
-# transfer_bgr8 = cv2.cvtColor(transfer_rgb8, cv2.COLOR_RGB2BGR)
-# cv2.imwrite(transfer_path8, transfer_bgr8)
-
+# plot result all result
+fig, ax = plt.subplots(2, 4, figsize=(18,6))
+pitie_source = plt.imread(pitie_source_path)
+ax[0][0].imshow(pitie_source)
+ax[0][0].set_title('Source')
+pitie_target = plt.imread(pitie_target_path)
+ax[0][1].imshow(pitie_target)
+ax[0][1].set_title('Target')
+mean_failed_opencv = plt.imread(mean_failed_opencv_path)
+ax[0][2].imshow(mean_failed_opencv)
+ax[0][2].set_title('Failed Reinhard OpenCV Result')
+mean_failed_matrix = plt.imread(mean_failed_matrix_path)
+ax[0][3].imshow(mean_failed_matrix)
+ax[0][3].set_title('Failed Reinhard Matrix Result')
+pitie_idt_result = plt.imread(pitie_idt_result_path)
+ax[1][0].imshow(pitie_idt_result)
+ax[1][0].set_title('IDT Result')
+pitie_regrain_result = plt.imread(pitie_regrain_result_path)
+ax[1][1].imshow(pitie_regrain_result)
+ax[1][1].set_title('IDT + Regain Result')
+pitie_mkl_result = plt.imread(pitie_mkl_result_path)
+ax[1][2].imshow(pitie_mkl_result)
+ax[1][2].set_title('MKL Result')
+fig.delaxes(ax[1][3])
+plt.show()
 
 # ************* time took ******************
 # t = time.time()
