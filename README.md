@@ -2,12 +2,7 @@
 Color Transfer Between Images uses statistical analysis approach to colour correct the source image
 by applying the applicable colour from target image to match the look and feel   
 
-~~~bash
-# Most Recent One (Suggested)
-pip install git+https://github.com/C160025/PSCSE19-0033
-# Release Version
-pip install color_transfer
-~~~
+
 
 ### Library Versions
 - numpy >= 1.18.3
