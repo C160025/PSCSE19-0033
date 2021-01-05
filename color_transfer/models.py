@@ -24,7 +24,7 @@ def MKL_CX(source_rgb, target_rgb):
     source = (source_rgb / 255.).reshape(-1, ch)
     target = (target_rgb / 255.).reshape(-1, ch)
 
-    # estimate the covariance
+    # estimate the covariance matrix
     source_cov = np.cov(source.T)
     target_cov = np.cov(target.T)
 
@@ -46,22 +46,24 @@ def mkl(source_cov, target_cov):
     :param target_cov: flatten target covariance in RGB on numpy array
     :return: flatten result in RGB on numpy array
     """
+
     # compute eigenvalues and eigenvectors of source covariance
     source_eigval, source_eigvec = np.linalg.eig(source_cov)
     # extract diagonal matrix from source eigenvalues
     source_diag = np.diag(np.sqrt(source_eigval.clip(eps, None)))
 
-    # continuous pdf mapping to match the target covariance
-    continuous = source_diag @ source_eigvec.T @ target_cov @ source_eigvec @ source_diag
+    # displacement cost of the mapping between source and target
+    cost = source_diag @ source_eigvec.T @ target_cov @ source_eigvec @ source_diag
 
-    # compute eigenvalues and eigenvectors of c
-    convex_eigval, convex_eigvec = np.linalg.eig(continuous)
-    # extract diagonal matrix from continuous eigenvalues
-    continuous_diag = np.diag(np.sqrt(convex_eigval.clip(eps, None)))
+    # compute eigenvalues and eigenvectors of the displacement cost
+    cost_eigval, cost_eigvec = np.linalg.eig(cost)
+    # extract diagonal matrix from cost eigenvalues
+    cost_diag = np.diag(np.sqrt(cost_eigval.clip(eps, None)))
     # inverse the source diagonal matrix
     source_diag_inv = np.diag(1. / (np.diag(source_diag)))
-
-    return source_eigvec @ source_diag_inv @ convex_eigvec @ continuous_diag @ convex_eigvec.T @ source_diag_inv @ source_eigvec.T
+    # transformation solution
+    return source_eigvec @ source_diag_inv @ cost_eigvec @ cost_diag \
+           @ cost_eigvec.T @ source_diag_inv @ source_eigvec.T
 
 # F. Pitie 2007 Regain Colour Transfer to Reduce Gain Noise Artefacts
 def REGRAIN_CX(source_rgb, target_rgb):
@@ -164,20 +166,21 @@ def solve(result, source, idt, n_bits, smoothness, level):
     delta = np.sqrt(np.sum((np.add(delta_x**2, delta_y**2)), axis=2))
 
     h = 2 ** (-level)
-    # weight field that limit the stretching during the transformation
+    # equation 2.13 weight field that limit the stretching during the transformation
     psi = (256. * delta / 5.).clip(None, 1)
-    # weight field that limit the flat areas remain flats
+    # equation 2.12 weight field that limit the flat areas remain flats
     phi = (30. * h) / (1 + 10 * delta / max(smoothness, eps))
-
+    # partial of equation 2.20
     phi_1 = (pixel_1(phi) + phi) / 2
     phi_2 = (pixel_2(phi) + phi) / 2
     phi_3 = (pixel_3(phi) + phi) / 2
     phi_4 = (pixel_4(phi) + phi) / 2
 
     rho = 1/5
-
+    # equation 2.18 Linear Elliptic Partial Differential
     for i in range(n_bits):
         den = psi + phi_1 + phi_2 + phi_3 + phi_4
+        # partial of equation 2.20
         num = (np.repeat(psi[:, :, np.newaxis], ch, axis=2) * idt
                + np.repeat(phi_1[:, :, np.newaxis], ch, axis=2) * (pixel_1(result) - pixel_1(source) + source)
                + np.repeat(phi_2[:, :, np.newaxis], ch, axis=2) * (pixel_2(result) - pixel_2(source) + source)
@@ -384,12 +387,12 @@ def colour_correction(source_lab, target_lab, clip='False'):
     (source_l, source_a, source_b) = cv2.split(source_lab)
     (target_l, target_a, target_b) = cv2.split(target_lab)
 
-    # equation 10 (FYP equation 2.4) subtract source mean from the source data points
+    # equation 2.4 subtract source mean from the source data points
     l = source_l - source_l.mean()
     a = source_a - source_a.mean()
     b = source_b - source_b.mean()
 
-    # equation 11 (FYP equation 2.5) scale down by factoring the respective standard deviation
+    # equation 2.5 scale down by factoring the respective standard deviation
     l = (target_l.std() / source_l.std()) * l
     a = (target_a.std() / source_a.std()) * a
     b = (target_b.std() / source_b.std()) * b
