@@ -52,7 +52,7 @@ def mkl(source_cov, target_cov):
     # extract diagonal matrix from source eigenvalues
     source_diag = np.diag(np.sqrt(source_eigval.clip(eps, None)))
 
-    # displacement cost of the mapping between source and target
+    # displacement mapping cost between the source and target
     cost = source_diag @ source_eigvec.T @ target_cov @ source_eigvec @ source_diag
 
     # compute eigenvalues and eigenvectors of the displacement cost
@@ -334,6 +334,8 @@ def Mean_CX(source_rgb, target_rgb, conversion):
         return opencv_mean_cx(source_rgb, target_rgb)
     if conversion == 'matrix':
         return matrix_mean_cx(source_rgb, target_rgb)
+    if conversion == 'noconv':
+        return noconv_mean_cx(source_rgb, target_rgb)
 
 def opencv_mean_cx(source_rgb, target_rgb):
     """
@@ -371,6 +373,21 @@ def matrix_mean_cx(source_rgb, target_rgb):
 
     # convert from LAB to RGB colour space
     return cx_lab2rgb(correction, True)
+
+def noconv_mean_cx(source_rgb, target_rgb):
+    """
+    Colour transfer (CX) from target image's colour characteristics into source image,
+    colour transfer directly on the RGB colour space.
+    :param source_rgb: source in RGB colour space (0-255) on numpy array
+    :param target_rgb: target in RGB colour space (0-255) on numpy array
+    :return: corrected image in RGB colour space (0-255) on numpy array
+    """
+
+    # statistics and colour correction
+    correction = colour_correction(source_rgb, target_rgb)
+
+    # no colour space conversion
+    return correction.astype(np.uint8)
 
 def colour_correction(source_lab, target_lab, clip='False'):
     """
