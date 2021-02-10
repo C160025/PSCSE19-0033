@@ -2,29 +2,23 @@ from color_transfer.models import Mean_CX, MKL_CX, IDT_CX, REGRAIN_CX
 
 def ColourXfer(source_rgb, target_rgb, model, conversion=None):
     """
-    Colour transfer from target image's colour characteristics into source image,
-    by the selection colour space conversion model.
-    numpy cv2 scipy
+    Colour transfer the source image with the target image's colour characteristics.
     :param source_rgb: source image in RGB colour space (0-255) on numpy array uint8
     :param target_rgb: target image in RGB colour space (0-255) on numpy array uint8
-    :param conversion: two type colour space conversions
-                  'opencv' = opencv-python package
-                  'matrix' = colour space conversion referencing from Reinhard et al. 2001 Color Transfer between Images
+    :param conversion: 3 type colour space conversions required for mean model only
+                  'opencv' = opencv-python package colour space conversion
+                  'matrix' = colour space conversion matrix by Reinhard et al.
                              http://erikreinhard.com/papers/colourtransfer.pdf
-    :param model: two type conversion models
-                  'mean' = mean and standard deviation transfer referencing from Reinhard et al. 2001 Color Transfer between Images
+                  'noconv' = no colour space conversion
+    :param model: 4 type colour transfer models
+                  'mean' = Mean model by Reinhard et al.
                            http://erikreinhard.com/papers/colourtransfer.pdf
-                  'idt' = probability density function or iterative distribution transfer transfer referencing from [Pitie05a], [Pitie05b] and [Pitie07a]
-                  'regrain' = regain colour transfer on IDT result referencing from [Pitie05b] and [Pitie07a]
-                  [Pitie05a] Pitié et al. 2005 N-Dimensional Probability Density Function Transfer and its Application to Colour Transfer
-                  https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
-                  [Pitie05b] Pitié et al. 2005 Towards Automated Colour Grading
-                  https://github.com/frcs/colour-transfer/blob/master/publications/pitie05cvmp.pdf
-                  [Pitie07a] Pitié et al. 2007 Automated colour grading using colour distribution transfer
-                  https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
-                  'mkl' = Monge-Kantorovitch linear transfer referencing from
-                  [Pitie07b] Pitie et al. 2007 The linear Monge-Kantorovitch linear colour mapping for example-based colour transfer
-                  https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cvmp.pdf
+                  'idt' = IDT model by Pitié et al.
+                          https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
+                  'regrain' = Regrain model by Pitié et al.
+                              https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
+                  'mkl' = MKL model by Pitié et al.
+                          https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cvmp.pdf
     :return: output_rgb: corrected image in RGB colour space (0-255) on numpy array uint8
     """
     if model == 'mean':

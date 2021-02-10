@@ -1,12 +1,10 @@
 import numpy as np
 import cv2
 
-# Erik Reinhard 2001 Color Transfer between Images
 def cx_rgb2lab(image_rgb, log10):
     """
-    Color space conversion from RGB to lab space referencing from paper
-    referencing from Reinhard et al. 2001 Color Transfer between Images
-    http://erikreinhard.com/papers/colourtransfer.pdf
+    Colour space conversion from RGB to lab space referencing from paper
+    by Reinhard et al. http://erikreinhard.com/papers/colourtransfer.pdf
     :param image_rgb: image in RGB color space on numpy array
     :param log10: true = eliminate the skew by log10 on LMS, false = bypass log10 on LMS
     :return: image in lab color space on numpy array
@@ -67,12 +65,10 @@ def cx_rgb2lab(image_rgb, log10):
     # merge individual channel into lab color space
     return cv2.merge([l, a, b]).astype(np.float32)
 
-# Erik Reinhard 2001 Color Transfer between Images
 def cx_lab2rgb(image_lab, power10):
     """
     Colour space conversion from lab to RGB space.
-    referencing from Reinhard et al. 2001 Color Transfer between Images
-    http://erikreinhard.com/papers/colourtransfer.pdf
+    by Reinhard et al. http://erikreinhard.com/papers/colourtransfer.pdf
     :param image_lab: image in lab colour space on numpy array
     :param power10: true = raise back to linear space, false = bypass power10 on LMS
     :return: image in RGB colour space on numpy array
