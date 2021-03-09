@@ -1,6 +1,9 @@
 import cv2
 import matplotlib.pyplot as plt
 from color_transfer.color_transfer import ColourXfer
+from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
+import numpy as np
+
 
 # 1) mean transfer using opencv and matrix colour space conversion on fig1(a) and fig1(B)
 mean_fig1_a_path = "images/mean_fig1_a.png"
@@ -114,6 +117,20 @@ pitie_mkl_result_rgb = ColourXfer(pitie_source_rgb, pitie_target_rgb, model='mkl
 pitie_mkl_result_bgr = cv2.cvtColor(pitie_mkl_result_rgb, cv2.COLOR_RGB2BGR)
 cv2.imwrite(pitie_mkl_result_path, pitie_mkl_result_bgr)
 
+# 5) mkl transfer on Pitié's source and Pitié's target
+pitie_mkl_result_lab_path = "images/pitie_mkl_result_lab.png"
+pitie_source_lab = cv2.cvtColor(pitie_source_rgb, cv2.COLOR_RGB2LAB).astype(np.float)
+pitie_target_lab = cv2.cvtColor(pitie_target_rgb, cv2.COLOR_RGB2LAB).astype(np.float)
+# pitie_source_lab = cx_rgb2lab(pitie_source_rgb, True)
+# pitie_target_lab = cx_rgb2lab(pitie_target_rgb, True)
+pitie_mkl_result_lab = ColourXfer(pitie_source_lab, pitie_target_lab, model='mkl')
+pitie_mkl_result_rgb = cv2.cvtColor(pitie_mkl_result_lab.astype(np.uint8), cv2.COLOR_LAB2RGB)
+# pitie_mkl_result_rgb = cx_lab2rgb(pitie_mkl_result_lab, True)
+pitie_mkl_result_bgr = cv2.cvtColor(pitie_mkl_result_rgb, cv2.COLOR_RGB2BGR)
+cv2.imwrite(pitie_mkl_result_lab_path, pitie_mkl_result_bgr)
+# mean_fig1_a = cx_rgb2lab(mean_fig1_a_rgb, True)
+# mean_fig1_b = cx_lab2rgb(mean_fig1_a, True)
+
 # plot result all result
 fig, ax = plt.subplots(3, 3, figsize=(18,13))
 pitie_source = plt.imread(pitie_source_path)
@@ -137,15 +154,24 @@ ax[2][0].set_title('IDT Result')
 pitie_regrain_result = plt.imread(pitie_regrain_result_path)
 ax[2][1].imshow(pitie_regrain_result)
 ax[2][1].set_title('IDT + Regain Result')
-pitie_mkl_result = plt.imread(pitie_mkl_result_path)
+pitie_mkl_result = plt.imread(pitie_mkl_result_lab_path)
 ax[2][2].imshow(pitie_mkl_result)
 ax[2][2].set_title('MKL Result')
 fig.delaxes(ax[0][2])
 plt.show()
+#
+# # ************* time took ******************
+# # t = time.time()
+# # print("took {} s to be remove after testing phase".format(time.time() - t))
+#
+#
+#
 
-# ************* time took ******************
-# t = time.time()
-# print("took {} s to be remove after testing phase".format(time.time() - t))
-
-
-
+# rgb_histo_path = "images/mean_fig2_a.png"
+# mean_fig2_a_bgr = cv2.imread(mean_fig2_a_path, cv2.IMREAD_COLOR)
+# mean_fig1_a_rgb = cv2.cvtColor(mean_fig1_a_bgr, cv2.COLOR_RGB2BGR)
+# mean_fig1_a = cx_rgb2lab(mean_fig1_a_rgb, True)
+# mean_fig1_b = cx_lab2rgb(mean_fig1_a, True)
+# result_path = "images/resultMatrix_fig1_a.png"
+# mean_fig2_b_rgb = cv2.cvtColor(mean_fig1_b, cv2.COLOR_RGB2BGR)
+# cv2.imwrite(result_path, mean_fig2_b_rgb)

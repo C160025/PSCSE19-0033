@@ -22,7 +22,7 @@ def show_color_histogram(path):
     plt.show()
     plt.close()
 
-def show_image_histogram_2d(path, bins=16, tick_spacing=2):
+def show_image_histogram_2d(path, bins=24, tick_spacing=2):
     '''
     2D colour histogram
     :param path: image file path
@@ -64,79 +64,90 @@ def show_image_histogram_2d(path, bins=16, tick_spacing=2):
     plt.show()
     plt.close()
 
-# histograms for Reinhard
-mean_fig1 = 'images/mean_fig1_a.png'
-show_color_histogram(mean_fig1)
-mean_fig1_b = 'images/mean_fig1_b.png'
-show_color_histogram(mean_fig1_b)
-mean_fig1_c_matrix = 'images/mean_fig1_c_matrix.png'
-show_color_histogram(mean_fig1_c_matrix)
-mean_fig1_c_noconv = 'images/mean_fig1_c_noconv.png'
-show_color_histogram(mean_fig1_c_noconv)
-mean_fig1_c_opencv = 'images/mean_fig1_c_opencv.png'
-show_color_histogram(mean_fig1_c_opencv)
-
+# # histograms for Reinhard
+# mean_fig1 = 'images/mean_fig1_a.png'
+# show_color_histogram(mean_fig1)
+# mean_fig1_b = 'images/mean_fig1_b.png'
+# show_color_histogram(mean_fig1_b)
+# mean_fig1_c_matrix = 'images/mean_fig1_c_matrix.png'
+# show_color_histogram(mean_fig1_c_matrix)
+# mean_fig1_c_noconv = 'images/mean_fig1_c_noconv.png'
+# show_color_histogram(mean_fig1_c_noconv)
+# mean_fig1_c_opencv = 'images/mean_fig1_c_opencv.png'
+# show_color_histogram(mean_fig1_c_opencv)
+#
 # 2D histograms for Reinhard
-mean_fig1 = 'images/mean_fig1_a.png'
-show_image_histogram_2d(mean_fig1)
-mean_fig1_b = 'images/mean_fig1_b.png'
-show_image_histogram_2d(mean_fig1_b)
-mean_fig1_c_matrix = 'images/mean_fig1_c_matrix.png'
-show_image_histogram_2d(mean_fig1_c_matrix)
-mean_fig1_c_noconv = 'images/mean_fig1_c_noconv.png'
-show_image_histogram_2d(mean_fig1_c_noconv)
-mean_fig1_c_opencv = 'images/mean_fig1_c_opencv.png'
-show_image_histogram_2d(mean_fig1_c_opencv)
+# mean_fig1 = 'images/mean_fig1_a.png'
+# show_image_histogram_2d(mean_fig1)
+# mean_fig1_b = 'images/mean_fig1_b.png'
+# show_image_histogram_2d(mean_fig1_b)
+# mean_fig1_c_matrix = 'images/mean_fig1_c_matrix.png'
+# show_image_histogram_2d(mean_fig1_c_matrix)
+# mean_fig1_c_noconv = 'images/mean_fig1_c_noconv.png'
+# show_image_histogram_2d(mean_fig1_c_noconv)
+# mean_fig1_c_opencv = 'images/mean_fig1_c_opencv.png'
+# show_image_histogram_2d(mean_fig1_c_opencv)
+#
+# # histograms for Reinhard 2
+# mean_fig2 = 'images/mean_fig2_a.png'
+# show_color_histogram(mean_fig2)
+# mean_fig2_b = 'images/mean_fig2_b.png'
+# show_color_histogram(mean_fig2_b)
+# mean_fig2_c_matrix = 'images/mean_fig2_c_matrix.png'
+# show_color_histogram(mean_fig2_c_matrix)
+# mean_fig2_c_noconv = 'images/mean_fig2_c_noconv.png'
+# show_color_histogram(mean_fig2_c_noconv)
+# mean_fig2_c_opencv = 'images/mean_fig2_c_opencv.png'
+# show_color_histogram(mean_fig2_c_opencv)
+#
+# # 2D histograms for Reinhard 2
+# mean_fig2 = 'images/mean_fig2_a.png'
+# show_image_histogram_2d(mean_fig2)
+# mean_fig2_b = 'images/mean_fig2_b.png'
+# show_image_histogram_2d(mean_fig2_b)
+# mean_fig2_c_matrix = 'images/mean_fig2_c_matrix.png'
+# show_image_histogram_2d(mean_fig2_c_matrix)
+# mean_fig2_c_noconv = 'images/mean_fig2_c_noconv.png'
+# show_image_histogram_2d(mean_fig2_c_noconv)
+# mean_fig2_c_opencv = 'images/mean_fig2_c_opencv.png'
+# show_image_histogram_2d(mean_fig2_c_opencv)
+#
+# # histograms for Pitie
+# pitie_source = 'images/pitie_source.png'
+# show_color_histogram(pitie_source)
+# pitie_target = 'images/pitie_target.png'
+# show_color_histogram(pitie_target)
+# mean_failed = 'images/mean_failed_matrix.png'
+# show_color_histogram(mean_failed)
+# idt_result = 'images/pitie_idt_result.png'
+# show_color_histogram(idt_result)
+# regrain_result = 'images/pitie_regrain_result.png'
+# show_color_histogram(regrain_result)
+# mkl_result = 'images/pitie_mkl_result.png'
+# show_color_histogram(mkl_result)
+#
+# # 2D histograms for Pitie
+# pitie_source = 'images/pitie_source.png'
+# show_image_histogram_2d(pitie_source)
+# pitie_target = 'images/pitie_target.png'
+# show_image_histogram_2d(pitie_target)
+# mean_failed = 'images/mean_failed_matrix.png'
+# show_image_histogram_2d(mean_failed)
+# idt_result = 'images/pitie_idt_result.png'
+# show_image_histogram_2d(idt_result)
+# regrain_result = 'images/pitie_regrain_result.png'
+# show_image_histogram_2d(regrain_result)
+# mkl_result = 'images/pitie_mkl_result.png'
+# show_image_histogram_2d(mkl_result)
 
-# histograms for Reinhard 2
-mean_fig2 = 'images/mean_fig2_a.png'
-show_color_histogram(mean_fig2)
-mean_fig2_b = 'images/mean_fig2_b.png'
-show_color_histogram(mean_fig2_b)
-mean_fig2_c_matrix = 'images/mean_fig2_c_matrix.png'
-show_color_histogram(mean_fig2_c_matrix)
-mean_fig2_c_noconv = 'images/mean_fig2_c_noconv.png'
-show_color_histogram(mean_fig2_c_noconv)
-mean_fig2_c_opencv = 'images/mean_fig2_c_opencv.png'
-show_color_histogram(mean_fig2_c_opencv)
+# RGB Histogram figure
+rgb_histogram = 'images/mean_fig2_a.png'
+show_color_histogram(rgb_histogram)
+show_image_histogram_2d(rgb_histogram)
 
-# 2D histograms for Reinhard 2
-mean_fig2 = 'images/mean_fig2_a.png'
-show_image_histogram_2d(mean_fig2)
-mean_fig2_b = 'images/mean_fig2_b.png'
-show_image_histogram_2d(mean_fig2_b)
-mean_fig2_c_matrix = 'images/mean_fig2_c_matrix.png'
-show_image_histogram_2d(mean_fig2_c_matrix)
-mean_fig2_c_noconv = 'images/mean_fig2_c_noconv.png'
-show_image_histogram_2d(mean_fig2_c_noconv)
-mean_fig2_c_opencv = 'images/mean_fig2_c_opencv.png'
-show_image_histogram_2d(mean_fig2_c_opencv)
 
-# histograms for Pitie
-pitie_source = 'images/pitie_source.png'
-show_color_histogram(pitie_source)
-pitie_target = 'images/pitie_target.png'
-show_color_histogram(pitie_target)
-mean_failed = 'images/mean_failed_matrix.png'
-show_color_histogram(mean_failed)
-idt_result = 'images/pitie_idt_result.png'
-show_color_histogram(idt_result)
-regrain_result = 'images/pitie_regrain_result.png'
-show_color_histogram(regrain_result)
-mkl_result = 'images/pitie_mkl_result.png'
-show_color_histogram(mkl_result)
-
-# 2D histograms for Pitie
-pitie_source = 'images/pitie_source.png'
-show_image_histogram_2d(pitie_source)
-pitie_target = 'images/pitie_target.png'
-show_image_histogram_2d(pitie_target)
-mean_failed = 'images/mean_failed_matrix.png'
-show_image_histogram_2d(mean_failed)
-idt_result = 'images/pitie_idt_result.png'
-show_image_histogram_2d(idt_result)
-regrain_result = 'images/pitie_regrain_result.png'
-show_image_histogram_2d(regrain_result)
-mkl_result = 'images/pitie_mkl_result.png'
-show_image_histogram_2d(mkl_result)
+# resultMatrix_fig1_a ='images/resultMatrix_fig1_a.png'
+# show_color_histogram(resultMatrix_fig1_a)
+# mean_fig1_a ='images/mean_fig1_a.png'
+# show_color_histogram(mean_fig1_a)
 
