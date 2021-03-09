@@ -64,10 +64,10 @@ def mkl(source_cov, target_cov):
     return source_eigvec @ source_diag_inv @ cost_eigvec @ cost_diag \
            @ cost_eigvec.T @ source_diag_inv @ source_eigvec.T
 
-# F. Pitie 2007 Regain Colour Transfer to Reduce Gain Noise Artefacts
+# F. Pitie 2007 Regrain Colour Transfer to Reduce Gain Noise Artefacts
 def REGRAIN_CX(source_rgb, target_rgb):
     """
-    Process Iterative Distribution Transfer (IDT) Colour transfer (CX) and follow by Regain Colour transfer (CX)
+    Process Iterative Distribution Transfer (IDT) Colour transfer (CX) and follow by Regrain Colour transfer (CX)
     by Pitié et al. 2005 https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_rgb: source in RGB on numpy array
     :param target_rgb: target in RGB on numpy array
@@ -80,7 +80,7 @@ def REGRAIN_CX(source_rgb, target_rgb):
 
 def regrain_cx(source_rgb, idt_rgb):
     """
-    Regain Colour transfer (CX) on IDT result to match the gradient level to the original source image
+    Regrain Colour transfer (CX) on IDT result to match the gradient level to the original source image
     by Pitié et al. 2005 https://github.com/frcs/colour-transfer/blob/master/publications/pitie07cviu.pdf
     :param source_rgb: source in RGB on numpy array
     :param idt_rgb: IDT result in RGB on numpy array
@@ -150,27 +150,32 @@ def solve(result, source, idt, n_bits, smoothness, level):
     delta = np.sqrt(np.sum((np.add(delta_x**2, delta_y**2)), axis=2))
 
     h = 2 ** (-level)
-    # equation 2.13 weight field that limit the stretching during the transformation
+    # figure 2.19 weight field that limit the stretching during the transformation
     psi = (256. * delta / 5.).clip(None, 1)
-    # equation 2.12 weight field that limit the flat areas remain flats
+    # figure 2.18 weight field that limit the flat areas remain flats
     phi = (30. * h) / (1 + 10 * delta / max(smoothness, eps))
-    # partial of equation 2.20
+    # partial of figure 2.21
     phi_1 = (pixel_1(phi) + phi) / 2
     phi_2 = (pixel_2(phi) + phi) / 2
     phi_3 = (pixel_3(phi) + phi) / 2
     phi_4 = (pixel_4(phi) + phi) / 2
 
     rho = 1/5
-    # equation 2.18 Linear Elliptic Partial Differential
+    # figure 2.25 Linear Elliptic Partial Differential
     for i in range(n_bits):
         den = psi + phi_1 + phi_2 + phi_3 + phi_4
-        # partial of equation 2.20
+        # partial of figure 2.26
         num = (np.repeat(psi[:, :, np.newaxis], ch, axis=2) * idt
-               + np.repeat(phi_1[:, :, np.newaxis], ch, axis=2) * (pixel_1(result) - pixel_1(source) + source)
-               + np.repeat(phi_2[:, :, np.newaxis], ch, axis=2) * (pixel_2(result) - pixel_2(source) + source)
-               + np.repeat(phi_3[:, :, np.newaxis], ch, axis=2) * (pixel_3(result) - pixel_3(source) + source)
-               + np.repeat(phi_4[:, :, np.newaxis], ch, axis=2) * (pixel_4(result) - pixel_4(source) + source))
-        result = num / np.repeat(den[:, :, np.newaxis], ch, axis=2) * (1 - rho) + rho * result
+               + np.repeat(phi_1[:, :, np.newaxis],
+                           ch, axis=2) * (pixel_1(result) - pixel_1(source) + source)
+               + np.repeat(phi_2[:, :, np.newaxis],
+                           ch, axis=2) * (pixel_2(result) - pixel_2(source) + source)
+               + np.repeat(phi_3[:, :, np.newaxis],
+                           ch, axis=2) * (pixel_3(result) - pixel_3(source) + source)
+               + np.repeat(phi_4[:, :, np.newaxis],
+                           ch, axis=2) * (pixel_4(result) - pixel_4(source) + source))
+        result = num / np.repeat(den[:, :, np.newaxis],
+                                 ch, axis=2) * (1 - rho) + rho * result
 
     return result
 
@@ -250,11 +255,12 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
             discrete_var = one_d_pdf_transfer(source_projections, target_projections, edges)
 
             # apply the mapping
-            source_rotation_[j] = np.interp(source_rotation[j], edges[1:], discrete_var, left=0,
-                                            right=bins - 1)
+            source_rotation_[j] = np.interp(source_rotation[j], edges[1:], discrete_var,
+                                            left=0, right=bins - 1)
 
         # apply transformation result
-        source = relaxation * np.linalg.pinv(rotation) @ (source_rotation_ - source_rotation) + source
+        source = relaxation * np.linalg.pinv(rotation) @ (source_rotation_ -
+                                                          source_rotation) + source
     return source
 
 def one_d_pdf_transfer(source_projections, target_projections, edges):
@@ -364,16 +370,17 @@ def colour_correction(source_lab, target_lab, clip='False'):
     :param clip: limit the data points range (0-255) for opencv-python conversion lab to RGB
     :return: corrected image in lab colour space on numpy array
     """
-    # split into individual channel space for statistics and colour correction to optimize the computation time
+    # split into individual channel space for statistics and colour correction
+    # to maximise the efficiency
     (source_l, source_a, source_b) = cv2.split(source_lab)
     (target_l, target_a, target_b) = cv2.split(target_lab)
 
-    # equation 2.4 subtract source mean from the source data points
+    # figure 2.9 subtract source mean from the source data points
     l = source_l - source_l.mean()
     a = source_a - source_a.mean()
     b = source_b - source_b.mean()
 
-    # equation 2.5 scale down by factoring the respective standard deviation
+    # figure 2.10 scale down by factoring the respective standard deviation
     l = (target_l.std() / source_l.std()) * l
     a = (target_a.std() / source_a.std()) * a
     b = (target_b.std() / source_b.std()) * b
