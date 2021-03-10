@@ -202,7 +202,7 @@ def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
     target_reshape = target_rgb.T.reshape(ch, -1) / 255.
 
     # facilitate the PDF/IDT Transfer
-    source = pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation)
+    source = pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation, wdth, hgt, True)
 
     # reshape image back by unflatten and denormalized RGB array
     output_r = source[0, :].reshape((wdth, hgt)).T * 255.
@@ -211,7 +211,24 @@ def IDT_CX(source_rgb, target_rgb, bins=300, nb_iterations=30, relaxation=1):
 
     return cv2.merge([output_r, output_g, output_b]).astype(np.uint8)
 
-def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation):
+def save_iteration_image(source, wdth, hgt, nb_iterations):
+    """
+    save each iteration image from the pdf_transfer
+    :param source: transformation result from the pdf_transfer
+    :return:
+    """
+
+    # reshape image back by unflatten and denormalized RGB array
+    output_r = source[0, :].reshape((wdth, hgt)).T * 255.
+    output_g = source[1, :].reshape((wdth, hgt)).T * 255.
+    output_b = source[2, :].reshape((wdth, hgt)).T * 255.
+
+    save_image_rgb = cv2.merge([output_r, output_g, output_b]).astype(np.uint8)
+    idt_result_path = "images/idt_iteration_images/idt_" + str(nb_iterations + 1) + "_iteration.png"
+    save_image_bgr = cv2.cvtColor(save_image_rgb, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(idt_result_path, save_image_bgr)
+
+def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation, wdth, hgt, iter_image=False):
     """
     decreases the Kullback-Leibler (KL) divergence measurement till the iterations end
     by Pitié et al. https://github.com/frcs/colour-transfer/blob/master/publications/pitie05iccv.pdf
@@ -220,17 +237,18 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
     :param bins: bandwidth size for the distribution
     :param nb_iterations: number of repetition to compute the transfer mapping
     :param relaxation: integrality gap for approximation
+    :param iter_image: save each iteration image
     :return: remapped result flatten RGB on numpy array
     """
     source = source_reshape
-    hgt, _ = source_reshape.shape
+    ch, _ = source_reshape.shape
 
     # initialize the fist rotation matrix
     first_rotation = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1],
                                [2/3, 2/3, -1/3], [2/3, -1/3, 2/3], [-1/3, 2/3, 2/3]])
     for i in range(nb_iterations):
         #  generate random orthogonal rotation matrix
-        orthogonal_matrix = special_ortho_group.rvs(hgt).astype(np.float32)
+        orthogonal_matrix = special_ortho_group.rvs(ch).astype(np.float32)
         rotation = first_rotation @ orthogonal_matrix if i > 0 else first_rotation
 
         # apply rotation to change the coordinate
@@ -244,7 +262,6 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
             # get the data plotting range
             data_min = min(source_rotation[j].min(), target_rotation[j].min()) - eps
             data_max = max(source_rotation[j].max(), target_rotation[j].max()) + eps
-
             # projection the source and target along the axis
             source_projections, edges = np.histogram(source_rotation[j], bins=bins - 1,
                                                      range=[data_min, data_max])
@@ -253,7 +270,6 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
 
             # transport map on 1-Dimensional PDF Transfer
             discrete_var = one_d_pdf_transfer(source_projections, target_projections, edges)
-
             # apply the mapping
             source_rotation_[j] = np.interp(source_rotation[j], edges[1:], discrete_var,
                                             left=0, right=bins - 1)
@@ -261,6 +277,10 @@ def pdf_transfer(source_reshape, target_reshape, bins, nb_iterations, relaxation
         # apply transformation result
         source = relaxation * np.linalg.pinv(rotation) @ (source_rotation_ -
                                                           source_rotation) + source
+        # sava image on each iteration
+        if iter_image:
+            save_iteration_image(source, wdth, hgt, i)
+
     return source
 
 def one_d_pdf_transfer(source_projections, target_projections, edges):
@@ -360,7 +380,7 @@ def noconv_mean_cx(source_rgb, target_rgb):
     # no colour space conversion
     return correction.astype(np.uint8)
 
-def colour_correction(source_lab, target_lab, clip='False'):
+def colour_correction(source_lab, target_lab, clip=False):
     """
     Colour correction is to compute mean and standard deviation,
     individually in for each axis under lab colour space.

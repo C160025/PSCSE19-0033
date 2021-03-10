@@ -82,14 +82,14 @@ def save_color_histogram(path):
     :return: show histogram graph
     '''
     image = cv2.imread(path, -1)
-    _, filename = ntpath.split(path)
+    path, filename = ntpath.split(path)
     for channel, col in enumerate(['b', 'g', 'r']):
         hist = cv2.calcHist([image], [channel], None, [256], [0, 256])
         plt.plot(hist, color=col)
         plt.xlim([0, 256])
 
     plt.title(f'Colour Histogram for {filename}')
-    plt.savefig('images/histograms_' + filename)
+    plt.savefig(path + '/histograms_' + filename)
     plt.close()
 
 def color_histogram(ax, path):
@@ -153,7 +153,7 @@ def save_all_2d_histogram(path, bins=24, tick_spacing=2):
     :return: show histogram graph
     '''
     image = cv2.imread(path)
-    _, filename = ntpath.split(path)
+    path, filename = ntpath.split(path)
     fig, axes = plt.subplots(1, 3, figsize=(12, 5.8))
     channels_mapping = {0: 'B', 1: 'G', 2: 'R'}
     for i, channels in enumerate([[0, 1], [0, 2], [1, 2]]):
@@ -182,7 +182,7 @@ def save_all_2d_histogram(path, bins=24, tick_spacing=2):
     fig.subplots_adjust(right=0.85)
     fig.colorbar(im, cax=cbar_ax)
     fig.suptitle(f'2D Colour Histograms for {filename} with {bins} bins', fontsize=16, y=0.92)
-    fig.savefig('images/2d_histograms_'+filename, dpi=fig.dpi)
+    fig.savefig(path + '/2d_histograms_'+filename, dpi=fig.dpi)
     plt.close()
 
 def gr_2d_histogram(ax, path, bins=24, tick_spacing=2):
@@ -220,7 +220,6 @@ def gr_2d_histogram(ax, path, bins=24, tick_spacing=2):
 def genr_2d_result(source, target):
     plt.close('all')
     fig, ((ax1, ax2, ax3), (ax4, ax5, ax6), (ax7, ax8, ax9)) = plt.subplots(3, 3, figsize=(18, 15))
-    # cbar_ax = fig.add_axes([0.87, 0.275, 0.015, 0.44])
     im1 = gr_2d_histogram(ax1, source)
     fig.colorbar(im1, ax=ax1)
     ax1.set_title('Source')
@@ -263,3 +262,38 @@ def genr_2d_result(source, target):
     save_all_2d_histogram(idt_result_path)
     save_all_2d_histogram(regrain_result_path)
     save_all_2d_histogram(mkl_result_path)
+
+def genr_idt_iter_result():
+    for n in range(30):
+        file_path = "images/idt_iteration_images/idt_" + str(n+1) + "_iteration.png"
+        save_color_histogram(file_path)
+        save_all_2d_histogram(file_path)
+    rows, cols, i, j, k = 3, 5, 0, 0, 0
+    fig1, ax1 = plt.subplots(rows, cols, figsize=(29, 13))
+    for r in range(rows):
+        for c in range(cols):
+            i = i + 2
+            load_path = "images/idt_iteration_images/idt_" + str(i) + "_iteration.png"
+            image = plt.imread(load_path)
+            ax1[r][c].imshow(image)
+            ax1[r][c].set_title(str(i) + " iteration")
+    plt.show()
+    fig2, ax2 = plt.subplots(rows, cols, figsize=(29, 13))
+    for r in range(rows):
+        for c in range(cols):
+            j = j + 2
+            load_path = "images/idt_iteration_images/idt_" + str(j) + "_iteration.png"
+            color_histogram(ax2[r][c], load_path)
+            ax2[r][c].set_title(str(j) + " iteration")
+    plt.show()
+    fig3, ax3 = plt.subplots(rows, cols, figsize=(29, 13))
+    for r in range(rows):
+        for c in range(cols):
+            k = k + 2
+            load_path = "images/idt_iteration_images/idt_" + str(k) + "_iteration.png"
+            im3 = gr_2d_histogram(ax3[r][c], load_path)
+            fig3.colorbar(im3, ax=ax3[r][c])
+            ax3[r][c].set_title(str(i) + " iteration")
+    plt.show()
+    plt.close()
+
