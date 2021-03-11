@@ -17,9 +17,7 @@ by applying the applicable colour from target image to match the look and feel
 import cv2
 from color_transfer.color_transfer import ColourXfer
 from color_transfer.utils import cx_rgb2lab, cx_lab2rgb
-from color_transfer.genr_result import genr_image_result
-from color_transfer.genr_result import genr_1d_result
-from color_transfer.genr_result import genr_2d_result
+from color_transfer.genr_result import genr_image_result, genr_1d_result, genr_2d_result, genr_idt_iter_result
 
 # source and target must be in RGB on numpy array (height, width, channel)
 source_bgr = cv2.imread("images/source.png", cv2.IMREAD_COLOR)
@@ -58,6 +56,9 @@ genr_image_result(source, target)
 genr_1d_result(source, target)
 # plot GR 2D histogram results from the above four transfer models
 genr_2d_result(source, target)
+# plot iteration results from IDT model
+genr_idt_iter_result()
+![img.png](img.png)
 
 ```
 
