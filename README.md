@@ -58,9 +58,14 @@ genr_1d_result(source, target)
 genr_2d_result(source, target)
 # plot iteration results from IDT model
 genr_idt_iter_result()
-<img src="images/all_img_results.png">
 
 ```
+<img src="images/all_img_results.png">
+<img src="images/all_1d_results.png">
+<img src="images/all_2d_results.png">
+<img src="images/idt_img_results.png">
+<img src="images/idt_1d_results.png">
+<img src="images/idt_2d_results.png">
 
 ### References
 - [Reinhard et al. 2001 Color Transfer between Images paper](http://erikreinhard.com/papers/colourtransfer.pdf)
