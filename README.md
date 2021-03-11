@@ -61,7 +61,7 @@ genr_idt_iter_result()
 
 ```
 <img src="images/all_img_results.png">
-<b>Image results consist of the Mean with different colour space, IDT, Regrain and MKL models</b>
+<b><center>Image results consist of the Mean with different colour space, IDT, Regrain and MKL models</center></b>
 <img src="images/all_1d_results.png">
 RGB histogram results consist of the Mean with different colour space, IDT, Regrain and MKL models
 <img src="images/all_2d_results.png">
