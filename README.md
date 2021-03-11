@@ -58,7 +58,7 @@ genr_1d_result(source, target)
 genr_2d_result(source, target)
 # plot iteration results from IDT model
 genr_idt_iter_result()
-![img.png](img.png)
+<img src="images/all_img_results.png">
 
 ```
 
