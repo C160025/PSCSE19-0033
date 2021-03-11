@@ -29,10 +29,10 @@ target_rgb = cv2.cvtColor(target_bgr, cv2.COLOR_RGB2BGR)
 source_lab =  cx_rgb2lab(source_rgb)
 target_lab =  cx_lab2rgb(target_rgb)
 
-# mean and variance transfer
-mean_opencv_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
-mean_noconv_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='noconv')
+# mean and variance transfer with different colour space conversion
 mean_matrix_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='matrix')
+mean_noconv_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='noconv')
+mean_opencv_rgb = ColourXfer(source_rgb, target_rgb, model='mean', conversion='opencv')
 
 # probability density function (pdf) or iterative distribution transfer (idt)
 idt_rgb = ColourXfer(source_rgb, target_rgb, model='idt')
@@ -61,11 +61,17 @@ genr_idt_iter_result()
 
 ```
 <img src="images/all_img_results.png">
+Image results consist of the Mean with different colour space, IDT, Regrain and MKL models
 <img src="images/all_1d_results.png">
+RGB histogram results consist of the Mean with different colour space, IDT, Regrain and MKL models
 <img src="images/all_2d_results.png">
+GR 2D histogram histogram results consist of the Mean with different colour space, IDT, Regrain and MKL models
 <img src="images/idt_img_results.png">
+Image results of the IDT's iterations
 <img src="images/idt_1d_results.png">
+RGB histogram results of the IDT's iterations
 <img src="images/idt_2d_results.png">
+GR 2D histogram results of the IDT's iterations
 
 ### References
 - [Reinhard et al. 2001 Color Transfer between Images paper](http://erikreinhard.com/papers/colourtransfer.pdf)
