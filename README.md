@@ -60,23 +60,24 @@ genr_2d_result(source, target)
 genr_idt_iter_result()
 
 ```
+### Image results consist of the Mean with different colour space, IDT, Regrain and MKL models
 <img src="images/all_img_results.png">
-### Image results consist of the Mean with different colour space, IDT, Regrain and MKL models**
 
-<img src="images/all_1d_results.png">
 ### RGB histogram results consist of the Mean with different colour space, IDT, Regrain and MKL models
+<img src="images/all_1d_results.png">
 
-<img src="images/all_2d_results.png">
 ### GR 2D histogram histogram results consist of the Mean with different colour space, IDT, Regrain and MKL models
+<img src="images/all_2d_results.png">
 
+### Image results of the IDT's iterations
 <img src="images/idt_img_results.png">
 ### Image results of the IDT's iterations
 
-<img src="images/idt_1d_results.png">
 ### RGB histogram results of the IDT's iterations
+<img src="images/idt_1d_results.png">
 
-<img src="images/idt_2d_results.png">
 ### GR 2D histogram results of the IDT's iterations
+<img src="images/idt_2d_results.png">
 
 ### References
 - [Reinhard et al. 2001 Color Transfer between Images paper](http://erikreinhard.com/papers/colourtransfer.pdf)
