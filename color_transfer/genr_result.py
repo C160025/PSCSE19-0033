@@ -293,7 +293,7 @@ def genr_idt_iter_result():
             load_path = "images/idt_iteration_images/idt_" + str(k) + "_iteration.png"
             im3 = gr_2d_histogram(ax3[r][c], load_path)
             fig3.colorbar(im3, ax=ax3[r][c])
-            ax3[r][c].set_title(str(i) + " iteration")
+            ax3[r][c].set_title(str(k) + " iteration")
     plt.show()
     plt.close()
 

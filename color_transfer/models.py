@@ -150,21 +150,21 @@ def solve(result, source, idt, n_bits, smoothness, level):
     delta = np.sqrt(np.sum((np.add(delta_x**2, delta_y**2)), axis=2))
 
     h = 2 ** (-level)
-    # figure 2.19 weight field that limit the stretching during the transformation
+    # FYP equation 13 weight field that limit the stretching during the transformation
     psi = (256. * delta / 5.).clip(None, 1)
-    # figure 2.18 weight field that limit the flat areas remain flats
+    # FYP equation 12 weight field that limit the flat areas remain flats
     phi = (30. * h) / (1 + 10 * delta / max(smoothness, eps))
-    # partial of figure 2.21
+    # partial of FYP equation 15
     phi_1 = (pixel_1(phi) + phi) / 2
     phi_2 = (pixel_2(phi) + phi) / 2
     phi_3 = (pixel_3(phi) + phi) / 2
     phi_4 = (pixel_4(phi) + phi) / 2
 
     rho = 1/5
-    # figure 2.25 Linear Elliptic Partial Differential
+    # FYP equation 21 Linear Elliptic Partial Differential
     for i in range(n_bits):
         den = psi + phi_1 + phi_2 + phi_3 + phi_4
-        # partial of figure 2.26
+        # partial of FYP equation 22
         num = (np.repeat(psi[:, :, np.newaxis], ch, axis=2) * idt
                + np.repeat(phi_1[:, :, np.newaxis],
                            ch, axis=2) * (pixel_1(result) - pixel_1(source) + source)
@@ -395,12 +395,12 @@ def colour_correction(source_lab, target_lab, clip=False):
     (source_l, source_a, source_b) = cv2.split(source_lab)
     (target_l, target_a, target_b) = cv2.split(target_lab)
 
-    # figure 2.9 subtract source mean from the source data points
+    # FYP equation 4 subtract source mean from the source data points
     l = source_l - source_l.mean()
     a = source_a - source_a.mean()
     b = source_b - source_b.mean()
 
-    # figure 2.10 scale down by factoring the respective standard deviation
+    # FYP equation 5 scale down by factoring the respective standard deviation
     l = (target_l.std() / source_l.std()) * l
     a = (target_a.std() / source_a.std()) * a
     b = (target_b.std() / source_b.std()) * b
